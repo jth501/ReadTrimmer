@@ -1,1 +1,2 @@
 # ReadTrimmer
+# Python project
