@@ -47,7 +47,7 @@ def dict_creation(dict_file):
             phred_dict[line[0]] = list(line[2:])
     return phred_dict
 
-def translation_scores(quality_line):
+def translation_scores(quality_line, phred_dict):
     """Function that translates Ascii characters into scores"""
     quality_scores = list()
     #To translate characters into scores
@@ -74,7 +74,7 @@ def lefttrim(read, leading, quality_scores, sequence, quality_lines ):
             quality_average += quality_scores[value-i] 
         result = quality_average /window_size      
         quality_average = 0
-   
+
         # To trim window until finding the first one with good quality
         if result >= quality_thereshold:
             quality_line = quality_line[:value+1]
