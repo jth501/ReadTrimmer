@@ -21,20 +21,6 @@ def parserfunc():
     args = my_parser.parse_args()
    
     return  args
-
-def readfile(file):
-    try:
-        fastq = open(file, "r")
-        read = []
-        for line in fastq:
-            line = line.strip()
-            read.append(line)
-            if len(read) == 4:
-                return read 
-                read = []
-    except FileNotFoundError:
-        print("file not found")        
-    
     
 def lefttrim(read, leading, qualityscore):
     """ remove X nucleotides from 3 prime end
@@ -51,8 +37,6 @@ def lefttrim(read, leading, qualityscore):
                 ltrim_highqual = ltrim.replace(ltrim[nucleotide], " ")
                 #print(ltrim_highqual)
         #break
-    
-        #ltrim_highqual += 
 
     return ltrim_highqual
 
@@ -79,39 +63,23 @@ def righttrim(read, trailing):
     return rtrim_highqual
 
 def run():
-    #start = parserfunc()
-    wholeread = readfile("testfile.txt")
-    
-    print(wholeread)
-    quality_coversion = laiasfunction(wholeread[3])
-    completeleft = lefttrim(wholeread[1], 8,quality_coversion )
-    print(completeleft)
-    
-    # with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
-    #     flag = False
+    file = "testfile.txt"
+    try:
+        # with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
+        fastq = open(file, "r")
+        read = []
+        for line in fastq:
+            line = line.strip()
+            read.append(line)
+            if len(read) == 4:
+                quality_coversion = laiasfunction(read[3])
+                completeleft = lefttrim(read[1], 8,quality_coversion )
+                print(completeleft)
+                read = []
+    except FileNotFoundError:
+        print("file not found")  
         
-    #     read_qual = []
-    #     for line in read1:  
-    #         #print(read_qual)
-    #         line = line.strip()
-    #         identifier = re.search(r"\b@\S+:",line)
-    #         sequence = re.search(r"\b[ATCGN]*",line)
-    #         if identifier is not None:
-    #             pass
-    #             #print(identifier.group(0))
-    #         if sequence is not None:
-    #             #print(sequence.group(0))
-    #             pass
-    #         if quality_score is not None:
-    #             print(quality_score)
-    #         read_qual.append(line)
-    #         ltrim = lefttrim(line,start.startcut, score_funct(), slide=start.slidingwindow)
-    #         # laia function : takes left input
-    #         if line.endswith(":"):
-    #             read_qual.append(line)
-    #             read_qual = []
-    #         #break
-
+  
 if __name__ == "__main__":
     run()
 else:
