@@ -147,6 +147,7 @@ def meanquality(lenchecked, qualityscore, qualitythreshold):
 def run():
     """Location to run all the functions, open the file from parser
     """
+    phred_dict = dict_creation('coding_keys.txt')
     file = "testfile.txt"
     try:
         # with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
@@ -161,6 +162,7 @@ def run():
                 completetrim = righttrim(completeleft, 8, quality_coversion)
                 print(completeleft)
                 print(completetrim)
+                quality_window = slidingWindow_funct(quality_conversion, completetrim, read[3]) 
                 if checklen(completetrim, minlen=50) is not None:
                     pass
                 if meanquality(completetrim,quality_coversion,qualitythreshold=40):
