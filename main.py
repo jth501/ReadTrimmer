@@ -47,14 +47,15 @@ def dict_creation(dict_file):
             phred_dict[line[0]] = list(line[2:])
     return phred_dict
 
-def translation_scores(quality_line):
+def translation_scores(read[3]):
     """Function that translates Ascii characters into scores"""
+    quality_scores = list()
     #To translate characters into scores
-    for char in quality_line:
+    for char in read[3]:
         for key,val in phred_dict.items():
             if val[0] == char:                      #Previously the function need to know WHICH PHRED DICT needs to use
-                quality_scores.append(int(key))
-    return print(quality_scores, 'length', len(quality_scores))
+                quality_scores.append(int(key))     #Quality_scores previously defined as a list     
+    return quality_scores
 
 def lefttrim(read, leading, qualityscore):
     """ remove X nucleotides from 3 prime end
@@ -90,8 +91,16 @@ def righttrim(read, trailing):
     
     return rtrim_highqual
 
-def score_funct (quality_scores, quality_line): 
+def score_funct (quality_scores, read[1] read[3]): 
     """Function to calculate each window's quality average"""
+    # read[1] = sequence line
+    # read[3] = quality characters line
+    
+    #Parameters definition
+    window_size = 4
+    quality_thereshold = 20
+    
+    
     # To calculate the average of a window from 3'
     quality_average = 0
     for value in range(len(quality_scores)-(window_size-1)):  
@@ -102,8 +111,9 @@ def score_funct (quality_scores, quality_line):
         
         # To trim window until finding the FIRST ONE with good quality
         if result >= quality_thereshold:
-            quality_line = quality_line[value:]
-            quality_scores = quality_scores[value:]      
+            quality_line = read[3][value:]
+            quality_scores = quality_scores[value:]    
+            trimmed_seq = read[1][value:]
             break
 
     
@@ -121,9 +131,11 @@ def score_funct (quality_scores, quality_line):
         if result >= quality_thereshold:
             quality_line = quality_line[:value+1]
             quality_scores = quality_scores[:value+1]      
+            trimmed_seq = trimmed_seq[:value+1]
             break
+            
+    return quality_scores, quality_line, trimmed_seq
 
-    return print(quality_line, 'length: ', len(quality_line))
 
 def checklen(trimmed, minlen):
     if len(trimmed) > minlen:
