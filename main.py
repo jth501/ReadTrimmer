@@ -63,32 +63,14 @@ def lefttrim(read, leading, qualityscore):
         return trimmed 3 prime
     """
     ltrim = read[leading:]
-    for nucleotide in range(len(ltrim)):
-        #print(nucleotide)
-        for number in qualityscore:
-            #print(number)
-            if number > 40:
-                break
-            elif number < 40:
-                ltrim_highqual = ltrim.replace(ltrim[nucleotide], " ")
-                #print(ltrim_highqual)
-        #break
+   
 
     return ltrim_highqual
 
 
-def righttrim(read, trailing):
+def righttrim(read, trailing, qualityscore):
     rtrim = read[trailing:]
-    for nucleotide in range(len(rtrim)):
-        print(nucleotide)
-        for number in qualityscore:
-            #print(number)
-            if number < 40:
-                rtrim_highqual = rtrim.replace(rtrim[nucleotide], " ")
-                #print(ltrim_highqual)
-            if number > 40:
-                break
-        break
+  
     
     return rtrim_highqual
 
@@ -157,7 +139,7 @@ def run():
             line = line.strip()
             read.append(line)
             if len(read) == 4:
-                quality_coversion = translation_scores(read[3])
+                quality_coversion = translation_scores(read[3], phred_dict)
                 completeleft = lefttrim(read[1], 8,quality_coversion ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft, 8, quality_coversion)
                 print(completeleft)
