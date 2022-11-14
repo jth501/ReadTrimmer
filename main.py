@@ -58,7 +58,6 @@ def translation_scores(quality_line):
     return quality_scores
 
 
-
 def lefttrim(read, leading, qualityscore):
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
@@ -112,8 +111,6 @@ def slidingWindow_funct (quality_scores, sequence, quality_line):
             quality_scores = quality_scores[value:]    
             trimmed_seq = sequence[value:]
             break
-
-    
   
     # To calculate the average of a windows from 5'       
     quality_average = 0
@@ -146,8 +143,6 @@ def meanquality(lenchecked, qualityscore, qualitythreshold):
     if meanquality > qualitythreshold:
         return lenchecked
     
-
-    
     
 def run():
     """Location to run all the functions, open the file from parser
@@ -170,8 +165,6 @@ def run():
                     pass
                 if meanquality(completetrim,quality_coversion,qualitythreshold=40):
                     print(completetrim)
-                
-                
                 read = []
     except FileNotFoundError:
         print("file not found")  
