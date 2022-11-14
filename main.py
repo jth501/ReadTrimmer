@@ -74,7 +74,7 @@ def lefttrim(read, leading, quality_scores, sequence, quality_lines ):
             quality_average += quality_scores[value-i] 
         result = quality_average /window_size      
         quality_average = 0
-
+   
         # To trim window until finding the first one with good quality
         if result >= quality_thereshold:
             quality_line = quality_line[:value+1]
