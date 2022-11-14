@@ -22,25 +22,6 @@ def parserfunc():
    
     return  args
     
-def lefttrim(read, leading, qualityscore):
-    """ remove X nucleotides from 3 prime end
-        return trimmed 3 prime
-    """
-    ltrim = read[leading:]
-    for nucleotide in range(len(ltrim)):
-        #print(nucleotide)
-        for number in qualityscore:
-            #print(number)
-            if number > 40:
-                break
-            elif number < 40:
-                ltrim_highqual = ltrim.replace(ltrim[nucleotide], " ")
-                #print(ltrim_highqual)
-        #break
-
-    return ltrim_highqual
-
-
 
 def dict_creation(dict_file):
     """CODE TO CREATE A DICTIONARY FROM THE INPUT FILE"""
@@ -66,8 +47,6 @@ def dict_creation(dict_file):
             phred_dict[line[0]] = list(line[2:])
     return phred_dict
 
-
-
 def translation_scores(quality_line):
     """Function that translates Ascii characters into scores"""
     #To translate characters into scores
@@ -76,6 +55,24 @@ def translation_scores(quality_line):
             if val[0] == char:                      #Previously the function need to know WHICH PHRED DICT needs to use
                 quality_scores.append(int(key))
     return print(quality_scores, 'length', len(quality_scores))
+
+def lefttrim(read, leading, qualityscore):
+    """ remove X nucleotides from 3 prime end
+        return trimmed 3 prime
+    """
+    ltrim = read[leading:]
+    for nucleotide in range(len(ltrim)):
+        #print(nucleotide)
+        for number in qualityscore:
+            #print(number)
+            if number > 40:
+                break
+            elif number < 40:
+                ltrim_highqual = ltrim.replace(ltrim[nucleotide], " ")
+                #print(ltrim_highqual)
+        #break
+
+    return ltrim_highqual
 
 
 def righttrim(read, trailing):
@@ -152,7 +149,7 @@ def run():
             line = line.strip()
             read.append(line)
             if len(read) == 4:
-                quality_coversion = laiasfunction(read[3])
+                quality_coversion = translation_scores(read[3])
                 completeleft = lefttrim(read[1], 8,quality_coversion ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft, 8, quality_coversion)
                 print(completeleft)
