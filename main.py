@@ -56,12 +56,43 @@ def lefttrim(read, leading, qualityscore):
 
     return ltrim_highqual
 
-def laiasfunction(read):
-    #returns list of scores - converted from phred scores
-    randscore = []
-    for i in read:
-        randscore.append(random.randint(1,45))
-    return randscore
+
+
+def dict_creation(dict_file):
+    """CODE TO CREATE A DICTIONARY FROM THE INPUT FILE"""
+    # Open the dictionary text file
+    import sys
+    try:
+        infile = open(dict_file, 'r')
+    except IOError as e:
+        print("Can't open file, Reason: " + str(e))
+        sys.exit(1)
+
+    # Create a dict by reading the imported text file
+    # # Key : scores
+    # # Values : coding keys (list of two elements)
+
+    phred_dict = dict()
+    import re
+    headlines = None
+    for line in infile:
+        headline = re.search(r'^\w+', line)
+        if headline is None: 
+            line = line.split()
+            phred_dict[line[0]] = list(line[2:])
+    return phred_dict
+
+
+
+def translation_scores(quality_line):
+    """Function that translates Ascii characters into scores"""
+    #To translate characters into scores
+    for char in quality_line:
+        for key,val in phred_dict.items():
+            if val[0] == char:                      #Previously the function need to know WHICH PHRED DICT needs to use
+                quality_scores.append(int(key))
+    return print(quality_scores, 'length', len(quality_scores))
+
 
 def righttrim(read, trailing):
     rtrim = read[trailing:]
@@ -78,6 +109,40 @@ def righttrim(read, trailing):
     
     return rtrim_highqual
 
+def score_funct (quality_scores, quality_line): 
+    """Function to calculate each window's quality average"""
+    # To calculate the average of a window from 3'
+    quality_average = 0
+    for value in range(len(quality_scores)-(window_size-1)):  
+        for i in range(window_size):  
+        quality_average += quality_scores[value+i]      
+        result = quality_average /window_size
+        quality_average = 0
+        
+        # To trim window until finding the FIRST ONE with good quality
+        if result >= quality_thereshold:
+            quality_line = quality_line[value:]
+            quality_scores = quality_scores[value:]      
+            break
+
+    
+  
+    # To calculate the average of a windows from 5'       
+    quality_average = 0
+    for value in range(len(quality_scores)-1,window_size-2,-1):    
+        for i in range(window_size):         
+            quality_average += quality_scores[value-i] 
+        result = quality_average /window_size      
+        quality_average = 0
+
+
+        # To trim window until finding the first one with good quality
+        if result >= quality_thereshold:
+            quality_line = quality_line[:value+1]
+            quality_scores = quality_scores[:value+1]      
+            break
+
+    return print(quality_line, 'length: ', len(quality_line))
 def run():
     #start = parserfunc()
     wholeread = readfile("testfile.txt")
