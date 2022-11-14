@@ -99,9 +99,9 @@ def score_funct (quality_scores, quality_line):
     quality_average = 0
     for value in range(len(quality_scores)-(window_size-1)):  
         for i in range(window_size):  
-        quality_average += quality_scores[value+i]      
-        result = quality_average /window_size
-        quality_average = 0
+            quality_average += quality_scores[value+i]      
+            result = quality_average /window_size
+            quality_average = 0
         
         # To trim window until finding the FIRST ONE with good quality
         if result >= quality_thereshold:
@@ -127,7 +127,22 @@ def score_funct (quality_scores, quality_line):
             break
 
     return print(quality_line, 'length: ', len(quality_line))
+
+def checklen(trimmed, minlen):
+    if len(trimmed) > minlen:
+        return trimmed
+        
+def meanquality(lenchecked, qualityscore, qualitythreshold):
+    meanquality = (sumquality(qualityscore.count()))
+    for i in qualityscore:
+        sumquality += i
+    if meanquality > qualitythreshold:
+        return lenchecked
+    
+    
 def run():
+    """Location to run all the functions, open the file from parser
+    """
     file = "testfile.txt"
     try:
         # with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
@@ -138,8 +153,16 @@ def run():
             read.append(line)
             if len(read) == 4:
                 quality_coversion = laiasfunction(read[3])
-                completeleft = lefttrim(read[1], 8,quality_coversion )
+                completeleft = lefttrim(read[1], 8,quality_coversion ) # third parameter will be from arg parse
+                completetrim = righttrim(completeleft, 8, quality_coversion)
                 print(completeleft)
+                print(completetrim)
+                if checklen(completetrim, minlen=50) is not None:
+                    pass
+                if meanquality(completetrim,quality_coversion,qualitythreshold=40):
+                    print(completetrim)
+                
+                
                 read = []
     except FileNotFoundError:
         print("file not found")  
