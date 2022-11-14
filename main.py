@@ -58,42 +58,15 @@ def translation_scores(quality_line):
     return quality_scores
 
 
-def lefttrim(read, leading, qualityscore):
+def lefttrim(read, leading, quality_scores, sequence, quality_lines ):
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
     """
-    ltrim = read[leading:]
-   
-
-    return ltrim_highqual
-
-
-def righttrim(read, trailing, qualityscore):
-    rtrim = read[trailing:]
-  
-    
-    return rtrim_highqual
-
-def slidingWindow_funct (quality_scores, sequence, quality_line): 
-    """Function to calculate each window's quality average"""   
     # Parameters definition
     window_size = 4
     quality_thereshold = 20 
+    ltrim = read[leading:]
     
-    # To calculate the average of a window from 3'
-    quality_average = 0
-    for value in range(len(quality_scores)-(window_size-1)):  
-        for i in range(window_size):  
-            quality_average += quality_scores[value+i]      
-        result = quality_average /window_size
-        quality_average = 0 
-        # To trim window until finding the FIRST ONE with good quality
-        if result >= quality_thereshold:
-            quality_line = quality_line[value:]
-            quality_scores = quality_scores[value:]    
-            trimmed_seq = sequence[value:]
-            break
-  
     # To calculate the average of a windows from 5'       
     quality_average = 0
     for value in range(len(quality_scores)-1,window_size-2,-1):    
@@ -102,14 +75,39 @@ def slidingWindow_funct (quality_scores, sequence, quality_line):
         result = quality_average /window_size      
         quality_average = 0
 
-
         # To trim window until finding the first one with good quality
         if result >= quality_thereshold:
             quality_line = quality_line[:value+1]
             quality_scores = quality_scores[:value+1]      
             trimmed_seq = trimmed_seq[:value+1]
             break
-            
+   
+
+    return quality_scores, quality_line, trimmed_seq
+
+
+def righttrim(read, trailing, quality_scores,  sequence, quality_lines ):
+    # Parameters definition
+    window_size = 4
+    quality_thereshold = 20 
+    
+    ltrim = read[leading:]
+    rtrim = read[trailing:]
+    
+      # To calculate the average of a window from 3'
+    quality_average = 0
+    for value in range(len(quality_scores)-(window_size-1)):  
+        for i in range(window_size):  
+            quality_average += quality_scores[value+i]      
+        result = quality_average /window_size
+        quality_average = 0
+        
+        # To trim window until finding the FIRST ONE with good quality
+        if result >= quality_thereshold:
+            quality_line = quality_line[value:]
+            quality_scores = quality_scores[value:]    
+            trimmed_seq = sequence[value:]
+            break
     return quality_scores, quality_line, trimmed_seq
 
 
