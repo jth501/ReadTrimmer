@@ -47,15 +47,17 @@ def dict_creation(dict_file):
             phred_dict[line[0]] = list(line[2:])
     return phred_dict
 
-def translation_scores(read[3]):
+def translation_scores(quality_line):
     """Function that translates Ascii characters into scores"""
     quality_scores = list()
     #To translate characters into scores
-    for char in read[3]:
+    for char in quality_line:
         for key,val in phred_dict.items():
             if val[0] == char:                      #Previously the function need to know WHICH PHRED DICT needs to use
-                quality_scores.append(int(key))     #Quality_scores previously defined as a list     
+                quality_scores.append(int(key))       
     return quality_scores
+
+
 
 def lefttrim(read, leading, qualityscore):
     """ remove X nucleotides from 3 prime end
@@ -91,31 +93,26 @@ def righttrim(read, trailing):
     
     return rtrim_highqual
 
-def score_funct (quality_scores, read[1] read[3]): 
-    """Function to calculate each window's quality average"""
-    # read[1] = sequence line
-    # read[3] = quality characters line
-    
-    #Parameters definition
+def slidingWindow_funct (quality_scores, sequence, quality_line): 
+    """Function to calculate each window's quality average"""   
+    # Parameters definition
     window_size = 4
-    quality_thereshold = 20
-    
+    quality_thereshold = 20 
     
     # To calculate the average of a window from 3'
     quality_average = 0
     for value in range(len(quality_scores)-(window_size-1)):  
         for i in range(window_size):  
             quality_average += quality_scores[value+i]      
-            result = quality_average /window_size
-            quality_average = 0
-        
+        result = quality_average /window_size
+        quality_average = 0 
         # To trim window until finding the FIRST ONE with good quality
         if result >= quality_thereshold:
-            quality_line = read[3][value:]
+            quality_line = quality_line[value:]
             quality_scores = quality_scores[value:]    
-            trimmed_seq = read[1][value:]
+            trimmed_seq = sequence[value:]
             break
-  
+
     
   
     # To calculate the average of a windows from 5'       
@@ -142,12 +139,14 @@ def checklen(trimmed, minlen):
         return trimmed
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
-    """check the meanquality of the trimmed read
+    """check the meanquality of the trimmed read"""
     meanquality = (sumquality(qualityscore.count()))
     for i in qualityscore:
         sumquality += i
     if meanquality > qualitythreshold:
         return lenchecked
+    
+
     
     
 def run():
