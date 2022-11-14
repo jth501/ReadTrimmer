@@ -115,7 +115,7 @@ def score_funct (quality_scores, read[1] read[3]):
             quality_scores = quality_scores[value:]    
             trimmed_seq = read[1][value:]
             break
-
+  
     
   
     # To calculate the average of a windows from 5'       
