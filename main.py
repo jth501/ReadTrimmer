@@ -142,6 +142,7 @@ def checklen(trimmed, minlen):
         return trimmed
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
+    """check the meanquality of the trimmed read
     meanquality = (sumquality(qualityscore.count()))
     for i in qualityscore:
         sumquality += i
