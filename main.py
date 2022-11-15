@@ -3,7 +3,7 @@
 import argparse
 import sys
 import re
-import random
+import gzip #detect if files are gunzip - uncomplete
 
 #create parser
 def parserfunc():
@@ -26,7 +26,6 @@ def parserfunc():
 def dict_creation(dict_file):
     """CODE TO CREATE A DICTIONARY FROM THE INPUT FILE"""
     # Open the dictionary text file
-    import sys
     try:
         infile = open(dict_file, 'r')
     except IOError as e:
@@ -38,7 +37,6 @@ def dict_creation(dict_file):
     # # Values : coding keys (list of two elements)
 
     phred_dict = dict()
-    import re
     headlines = None
     for line in infile:
         headline = re.search(r'^\w+', line)
@@ -65,6 +63,7 @@ def lefttrim(read, leading, quality_scores, quality_line ):
     # Parameters definition
     window_size = 4
     quality_thereshold = 20 
+    
     ltrim = read[leading:]
     
     # To calculate the average of a windows from 5'       
@@ -77,13 +76,12 @@ def lefttrim(read, leading, quality_scores, quality_line ):
 
         # To trim window until finding the first one with good quality
         if result >= quality_thereshold:
-            quality_line = quality_line[:value+1]
+            quality_lin = quality_line[:value+1]
             quality_scores = quality_scores[:value+1]      
             trimmed_seq = ltrim[:value+1]
             break
-   
 
-    return quality_scores, quality_line, trimmed_seq
+    return trimmed_seq, quality_lin
 
 
 def righttrim(read, trailing, quality_scores, quality_line):
@@ -91,7 +89,7 @@ def righttrim(read, trailing, quality_scores, quality_line):
     window_size = 4
     quality_thereshold = 20 
     
-    rtrim = read[trailing:]
+    rtrim = read[:-trailing]
     
       # To calculate the average of a window from 3'
     quality_average = 0
@@ -103,11 +101,11 @@ def righttrim(read, trailing, quality_scores, quality_line):
         
         # To trim window until finding the FIRST ONE with good quality
         if result >= quality_thereshold:
-            quality_line = quality_line[value:]
+            quality_lin = quality_line[value:]
             quality_scores = quality_scores[value:]    
             trimmed_seq = rtrim[value:]
             break
-    return quality_scores, quality_line, trimmed_seq
+    return trimmed_seq, quality_lin
 
 
 def checklen(trimmed, minlen):
@@ -116,7 +114,8 @@ def checklen(trimmed, minlen):
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
     """check the meanquality of the trimmed read"""
-    meanquality = (sumquality(qualityscore.count()))
+    sumquality = 0
+    meanquality = sumquality/(len(qualityscore))
     for i in qualityscore:
         sumquality += i
     if meanquality > qualitythreshold:
@@ -129,7 +128,7 @@ def run():
     phred_dict = dict_creation('coding_keys.txt')
     file = "testfile.txt"
     try:
-        # with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
+        #with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
         fastq = open(file, "r")
         read = []
         for line in fastq:
@@ -138,14 +137,16 @@ def run():
             if len(read) == 4:
                 quality_coversion = translation_scores(read[3], phred_dict)
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3] ) # third parameter will be from arg parse
-                completetrim = righttrim(completeleft, 8, quality_coversion, read[3])
-                print(completeleft)
-                print(completetrim)
+                completetrim = righttrim(completeleft[0], 8, quality_coversion, completeleft[1])
+                if len(completetrim[0]) != len(completetrim[1]):
+                    sys.exit("Error - sequence length doesn't equal quality length")
+              
                 if checklen(completetrim, minlen=50) is not None:
                     pass
                 if meanquality(completetrim,quality_coversion,qualitythreshold=40):
                     print(completetrim)
                 read = []
+                break
     except FileNotFoundError:
         print("file not found")  
         
