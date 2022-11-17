@@ -48,7 +48,7 @@ def dict_creation(dict_file):
 
 def guess_encoding(id_line):
     """Function to detect which phred has to be used (+33 or +64)"""
-    if id_line.startswith('@HWI'):
+    if id_line[0:3] == '@HWI':
         dictionary = 1
     else:
         dictionary = 0
