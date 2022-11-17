@@ -10,17 +10,17 @@ def parserfunc():
     my_parser = argparse.ArgumentParser(prog="ReadTrimmer", description="This is a read trimmer")
 
     #add the arguments
-    my_parser.add_argument("-file1","-f1", type = str,help="the file needed", required=True)
-    my_parser.add_argument("-file2", "-f2", help ="the second file needed", required=True)
+    my_parser.add_argument("-files","-f", nargs="+", action="append",help="the file needed")
     my_parser.add_argument("-slidingwindow", nargs="?", default="4", type = int, help="size of the sliding window")
     my_parser.add_argument("-startcut", nargs="?",  default="8", type = int, help ="number of leading nucleotides to remove")
     my_parser.add_argument("-endcut", nargs="?", default="8", type = int, help="number of trailing nucleotides to remove")
     my_parser.add_argument("-minlength", nargs="?", default="100",type = int ,help ="minimum length of the read required")
 
     #execute the parser method
-    args = my_parser.parse_args()
+    #parameters here are currenty tests but can be rewritten to otger file for testing
+    args = my_parser.parse_args("-f testfile.txt".split())
    
-    return  args
+    return args
     
 
 def dict_creation(dict_file):
@@ -55,20 +55,14 @@ def translation_scores(quality_line, phred_dict):
                 quality_scores.append(int(key))       
     return quality_scores
 
-
-def lefttrim(read, leading, quality_scores, quality_line ):
+def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
     """ remove X nucleotides from 5 prime end
         return trimmed 5 prime
     """
-    # Parameters definition
-    window_size = 4
-    quality_threshold = 20 
-    
     # Remove X nucleotides
     ltrim = read[leading:]
     quality_scores = quality_scores[leading:]
     quality_line = quality_line[leading:]
-    
     
     # To calculate the average of a windows from 5'       
     quality_average = 0
@@ -86,15 +80,11 @@ def lefttrim(read, leading, quality_scores, quality_line ):
             break
     return trimmed_seq,quality_scores, quality_line
     
-
-
-def righttrim(read, trailing, quality_scores, quality_line):
+def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_threshold):
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
     """
     # Parameters definition
-    window_size = 4
-    quality_threshold = 20 
     
     # Remove X nucleotides
     rtrim = read[:-trailing]
@@ -115,8 +105,7 @@ def righttrim(read, trailing, quality_scores, quality_line):
             quality_scores = quality_scores[:value+1]      
             trimmed_seq = rtrim[:value+1]
             break
-    return trimmed_seq,quality_scores
-
+    return trimmed_seq,quality_scores, quality_line
 
 def checklen(trimmed, minlen):
     if len(trimmed) > minlen:
@@ -135,30 +124,43 @@ def meanquality(lenchecked, qualityscore, qualitythreshold):
 def run():
     """Location to run all the functions, open the file from parser
     """
+    start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
-    file = "testfile.txt"
+    
     try:
-        #with open(start.file1, "r") as read1, open(start.file2, "r") as r2, open("output.txt", "w") as outfile:
-        fastq = open(file, "r")
+        #checks number of files provided and makes TextWrapper list to iterate through belpow
+        if len(start.files[0]) == 2:
+            fastq = [open(start.files[0][0], "r"), open(start.files[0][1], "r")]
+            size, num, index1, index2 = (4 ,1, 1, 3)
+            
+        elif len(start.files[0]) == 1:
+            fastq = [open(start.files[0][0], "r")]
+            size, num, index1, index2 = (2 ,0, 1, 1)
+        else:
+            sys.exit("Only single file/two paired files allowed as input")
+        #create output file to write to and initialise read   
+        outfile = open("outfile.txt", "w")
         read = []
-        for line in fastq:
-            line = line.strip()
+        #check if fastq format in first read and exit if so - unfinished
+        for line in map(list,zip(fastq[0],fastq[num])):
+            line = [x.strip() for x in line]
             read.append(line)
-            if len(read) == 4:
-                quality_coversion = translation_scores(read[3], phred_dict)
-                completeleft = lefttrim(read[1], 8,quality_coversion, read[3] ) # third parameter will be from arg parse
-                completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2] )
+            #read length is 2 for single but 4 for paired
+            if len(read) == size:
+                #still need to fix ability for functions to read two reads at once
+                quality_coversion = translation_scores(read[index2][index1], phred_dict)
+                completeleft = lefttrim(read[num][index1], 8,quality_coversion, read[index1][index2], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
+                completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
-              
+                print(completetrim[0])
                 if checklen(completetrim[0], minlen=50) is not None:
                     pass
-                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40):
+                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
                     print(completetrim[0])
                 read = []
-                break
-    except FileNotFoundError:
-        print("file not found")  
+    except FileNotFoundError as e:
+        print("file not found", e)  
         
   
 if __name__ == "__main__":
