@@ -18,7 +18,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
@@ -131,11 +131,11 @@ def run():
         #checks number of files provided and makes TextWrapper list to iterate through belpow
         if len(start.files[0]) == 2:
             fastq = [open(start.files[0][0], "r"), open(start.files[0][1], "r")]
-            size, num, index1, index2 = (4 ,1, 1, 3)
+            size, num = (4 ,1)
             
         elif len(start.files[0]) == 1:
             fastq = [open(start.files[0][0], "r")]
-            size, num, index1, index2 = (2 ,0, 1, 1)
+            size, num = (2 ,0)
         else:
             sys.exit("Only single file/two paired files allowed as input")
         #create output file to write to and initialise read   
@@ -147,18 +147,24 @@ def run():
             read.append(line)
             #read length is 2 for single but 4 for paired
             if len(read) == size:
+                if size == 2:
+                    read = ["".join(x) for i in read for x in i]
+                if size == 4:
+                    pass
+                print(read[1])
                 #still need to fix ability for functions to read two reads at once
-                quality_coversion = translation_scores(read[index2][index1], phred_dict)
-                completeleft = lefttrim(read[num][index1], 8,quality_coversion, read[index1][index2], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
+                quality_coversion = translation_scores(read[3], phred_dict)
+                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
+                print(completetrim[0])
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
-                print(completetrim[0])
                 if checklen(completetrim[0], minlen=50) is not None:
                     pass
                 if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
                     print(completetrim[0])
                 read = []
+                break
     except FileNotFoundError as e:
         print("file not found", e)  
         
