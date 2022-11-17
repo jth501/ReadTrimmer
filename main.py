@@ -45,13 +45,24 @@ def dict_creation(dict_file):
             phred_dict[line[0]] = list(line[2:])
     return phred_dict
 
-def translation_scores(quality_line, phred_dict):
+
+def guess_encoding(id_line):
+    """Function to detect which phred has to be used (+33 or +64)"""
+    if id_line.startswith('@HWI'):
+        dictionary = 1
+    else:
+        dictionary = 0
+    return dictionary
+    
+    
+    
+def translation_scores(quality_line, phred_dict, encoding_dict):
     """Function to translates Ascii characters into scores"""
     quality_scores = list()
     #To translate characters into scores
     for char in quality_line:
         for key,val in phred_dict.items():
-            if val[0] == char:                      #Previously the function need to know WHICH PHRED DICT needs to use [0] or [1]
+            if val[encoding_dict] == char:                   
                 quality_scores.append(int(key))       
     return quality_scores
 
@@ -153,7 +164,8 @@ def run():
                     pass
                 print(read[1])
                 #still need to fix ability for functions to read two reads at once
-                quality_coversion = translation_scores(read[3], phred_dict)
+                dictionary = guess_encoding(read[0])
+                quality_coversion = translation_scores(read[3], phred_dict, dictionary)
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
                 print(completetrim[0])
