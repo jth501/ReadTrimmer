@@ -16,11 +16,11 @@ def parserfunc():
     my_parser.add_argument("-startcut", nargs="?",  default="8", type = int, help ="number of leading nucleotides to remove")
     my_parser.add_argument("-endcut", nargs="?", default="8", type = int, help="number of trailing nucleotides to remove")
     my_parser.add_argument("-minlength", nargs="?", default="100",type = int ,help ="minimum length of the read required")
-    my_parser.add_argument("-minlength", nargs="?", default="20",type = int ,help ="min quality level of read")
+    my_parser.add_argument("-qualitythreshold", nargs="?", default="20",type = int ,help ="min quality level of read")
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt ".split())
+    args = my_parser.parse_args("-f testfile.txt".split())
    
     return args
     
@@ -146,7 +146,6 @@ def run():
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
-    
     try:
         starter = decompress(start.files)
         print(starter)
@@ -155,7 +154,7 @@ def run():
         if len(start.files) == 2:
             fastq = [open_opt(start.files[0], "r"), open_opt(start.files[1], "r")]
             size, num = (4 ,1)
-        elif len(start.files[0]) == 1:
+        elif len(start.files) == 1:
             fastq = [open_opt(start.files[0], "r")]
             size, num = (2 ,0)
         else:
