@@ -64,7 +64,6 @@ def guess_encoding(id_line):
     return dictionary
     
     
-    
 def translation_scores(quality_line, phred_dict, encoding_dict):
     """Function to translates Ascii characters into scores"""
     quality_scores = list()
@@ -72,7 +71,8 @@ def translation_scores(quality_line, phred_dict, encoding_dict):
     for char in quality_line:
         for key,val in phred_dict.items():
             if val[encoding_dict] == char:                   
-                quality_scores.append(int(key))       
+                quality_scores.append(int(key))
+    print(len(quality_scores))       
     return quality_scores
 
 def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
@@ -134,9 +134,9 @@ def checklen(trimmed, minlen):
 def meanquality(lenchecked, qualityscore, qualitythreshold):
     """check the meanquality of the trimmed read"""
     sumquality = 0
-    meanquality = sumquality/(len(qualityscore))
     for i in qualityscore:
         sumquality += i
+    meanquality = int(sumquality/(len(qualityscore)))
     if meanquality > qualitythreshold:
         return lenchecked
     
@@ -148,7 +148,6 @@ def run():
     phred_dict = dict_creation('coding_keys.txt')
     try:
         starter = decompress(start.files)
-        print(starter)
         open_opt = gzip.open if starter is not None else open
         #checks number of files provided and makes TextWrapper list to iterate through belpow
         if len(start.files) == 2:
@@ -173,21 +172,21 @@ def run():
                     read = ["".join(x) for i in read for x in i]
                 if size == 4:
                     pass
-                print(read)
-                #still need to fix ability for functions to read two reads at once
                 dictionary = guess_encoding(read[0])
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
+                print(quality_coversion, len(quality_coversion))
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
-                print(completetrim[0])
+             
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
                 if checklen(completetrim[0], minlen=50) is not None:
                     pass
-                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
+                if meanquality(completetrim[0],completetrim[1],start.qualitythreshold) is not None:
                     print(completetrim[0])
+                    outfile.write(completetrim[2],read[2],completetrim[0])
                 read = []
-                break
+                
     except FileNotFoundError as e:
         sys.exit("file not found", e)  
     except IOError as x:
