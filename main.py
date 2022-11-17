@@ -4,6 +4,7 @@ import argparse
 import sys
 import re
 import gzip #detect if files are gunzip - uncomplete
+import datetime
 import string
 
 #create parser
@@ -20,7 +21,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
@@ -57,7 +58,7 @@ def dict_creation(dict_file):
 
 def guess_encoding(id_line):
     """Function to detect which phred has to be used (+33 or +64)"""
-    if id_line.startswith('@HWI'):
+    if id_line[0:3] == '@HWI':
         dictionary = 1
     else:
         dictionary = 0
@@ -161,7 +162,9 @@ def run():
             
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
+        logfile = open("log_file.txt", "w")
         read = []
+
         #check if fastq format in first read and exit if so - unfinished
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -173,8 +176,9 @@ def run():
                 if size == 4:
                     pass
                 dictionary = guess_encoding(read[0])
+                print(read[1], 'length', len(read[1]))
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                print(quality_coversion, len(quality_coversion))
+                print(quality_coversion, 'length', len(quality_coversion))
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
              
@@ -186,11 +190,12 @@ def run():
                     print(completetrim[0])
                     outfile.write(completetrim[2],read[2],completetrim[0])
                 read = []
-                
+        now = datetime.datetime.now()
+        # logfile.write(str(now)\t)
+        logfile.write('All reads from this FILE are CORRECTLY TRIMMED!')
+
     except FileNotFoundError as e:
-        sys.exit("file not found", e)  
-    except IOError as x:
-        print(x) #could append this to the log file
+        print("file not found", e)  
         
   
 if __name__ == "__main__":
