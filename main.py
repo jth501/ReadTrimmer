@@ -16,12 +16,12 @@ def parserfunc():
     my_parser.add_argument("-slidingwindow", nargs="?", default="4", type = int, help="size of the sliding window")
     my_parser.add_argument("-startcut", nargs="?",  default="8", type = int, help ="number of leading nucleotides to remove")
     my_parser.add_argument("-endcut", nargs="?", default="8", type = int, help="number of trailing nucleotides to remove")
-    my_parser.add_argument("-minlength", nargs="?", default="100",type = int ,help ="minimum length of the read required")
+    my_parser.add_argument("-minlength", nargs="?", default="70",type = int ,help ="minimum length of the read required")
     my_parser.add_argument("-qualitythreshold", nargs="?", default="20",type = int ,help ="min quality level of read")
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f testfile.txt ".split())
    
     return args
     
@@ -72,8 +72,7 @@ def translation_scores(quality_line, phred_dict, encoding_dict):
     for char in quality_line:
         for key,val in phred_dict.items():
             if val[encoding_dict] == char:                   
-                quality_scores.append(int(key))
-    print(len(quality_scores))       
+                quality_scores.append(int(key))     
     return quality_scores
 
 def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
@@ -131,6 +130,8 @@ def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_t
 def checklen(trimmed, minlen):
     if len(trimmed) > minlen:
         return trimmed
+    else: 
+        pass # write index to log file
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
     """check the meanquality of the trimmed read"""
@@ -176,19 +177,16 @@ def run():
                 if size == 4:
                     pass
                 dictionary = guess_encoding(read[0])
-                print(read[1], 'length', len(read[1]))
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                print(quality_coversion, 'length', len(quality_coversion))
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
-             
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
                 if checklen(completetrim[0], minlen=50) is not None:
                     pass
                 if meanquality(completetrim[0],completetrim[1],start.qualitythreshold) is not None:
-                    print(completetrim[0])
-                    outfile.write(completetrim[2],read[2],completetrim[0])
+                    
+                    outfile.write("{0}\n\n{1}\n".format(completetrim[0], completetrim[2]))
                 read = []
         now = datetime.datetime.now()
         # logfile.write(str(now)\t)
