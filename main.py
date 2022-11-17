@@ -170,6 +170,15 @@ def run():
         trimmed_reads = 0
         removed_reads = 0
         
+        #Counter to keep track of statistics
+        number_entries = 0
+        number_A = 0
+        number_C = 0
+        number_T = 0
+        number_G = 0
+        length_entries = list()
+
+
         #check if fastq format in first read and exit if so - unfinished
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -180,10 +189,16 @@ def run():
                     read = ["".join(x) for i in read for x in i]
                 if size == 4:
                     pass
-                print(read)
+                number_entries += 1
+                length_entries.append(len(read[1]))
+
                 #still need to fix ability for functions to read two reads at once
                 initial_read = read[1]
-                print('initial', initial_read, 'length', len(initial_read))
+                number_A = initial_read.count('A')
+                number_C = initial_read.count('C')
+                number_T = initial_read.count('T')
+                number_G = initial_read.count('G')
+
                 dictionary = guess_encoding(read[0])
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) 
@@ -198,7 +213,6 @@ def run():
                     print(completetrim[0])
 
                 #To check if the read has been trimmed or removed
-                print('final read', completetrim[0], 'length', len(completetrim[0]))
                 if len(completetrim[0]) != len(initial_read):
                     trimmed_reads += 1
                 if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) or checklen(completetrim[0], minlen=50) is None:
@@ -209,7 +223,29 @@ def run():
         now = datetime.datetime.now()
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
         print('Number of trimmed reads:\t', trimmed_reads, file = logfile )
-        print('Number of removed reads:\t', removed_reads, file = logfile )
+        print('Number of removed reads:\t', removed_reads, file = logfile)
+        print('\nSTATISTICS (file without trimming):', file = logfile )
+
+        print('Number of entries:\t',number_entries, file = logfile )
+        print('Number of each bases:\t', file = logfile )
+        print('\tNumber A:\t',number_A, file = logfile )
+        print('\tNumber C:\t',number_C, file = logfile )
+        print('\tNumber T:\t',number_T, file = logfile )
+        print('\tNumber G:\t',number_G, file = logfile )
+
+        print('Length of each entry:\t', file = logfile )
+        for i in range(1,number_entries+1):
+            print('\tEntry\t', i, ':\t', length_entries[i-1], file = logfile)
+
+
+
+        print('Average length of entries:\t', file = logfile )
+        print('Quality average length of entries:\t', file = logfile )
+        print('Best 10% quality entries:\t', file = logfile )
+        print('Worst 10% quality entries:\t', file = logfile )
+
+
+
 
 
     except FileNotFoundError as e:
