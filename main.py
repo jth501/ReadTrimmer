@@ -21,7 +21,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f testfile.txt ".split())
    
     return args
     
@@ -166,6 +166,10 @@ def run():
         logfile = open("log_file.txt", "w")
         read = []
 
+        # Counter to keep track of trimmed and removed reads
+        trimmed_reads = 0
+        removed_reads = 0
+        
         #check if fastq format in first read and exit if so - unfinished
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -178,26 +182,43 @@ def run():
                     pass
                 print(read)
                 #still need to fix ability for functions to read two reads at once
+                initial_read = read[1]
+                print('initial', initial_read, 'length', len(initial_read))
                 dictionary = guess_encoding(read[0])
-                print(read[1], 'length', len(read[1]))
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                print(quality_coversion, 'length', len(quality_coversion))
-                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
+                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) 
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
                 print(completetrim[0])
+
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
                 if checklen(completetrim[0], minlen=50) is not None:
                     pass
                 if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
                     print(completetrim[0])
+
+                #To check if the read has been trimmed or removed
+                print('final read', completetrim[0], 'length', len(completetrim[0]))
+                if len(completetrim[0]) != len(initial_read):
+                    trimmed_reads += 1
+                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) or checklen(completetrim[0], minlen=50) is None:
+                    removed_reads += 1
                 read = []
+
+        # To put the results in a log file
         now = datetime.datetime.now()
-        # logfile.write(str(now)\t)
-        logfile.write('All reads from this FILE are CORRECTLY TRIMMED!')
+        print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
+        print('Number of trimmed reads:\t', trimmed_reads, file = logfile )
+        print('Number of removed reads:\t', removed_reads, file = logfile )
+
 
     except FileNotFoundError as e:
-        print("file not found", e)  
+        print("file not found", e) 
+        # To put the results in a log file
+        now = datetime.datetime.now()
+        print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
+
+         
         
   
 if __name__ == "__main__":
