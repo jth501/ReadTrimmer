@@ -5,24 +5,33 @@ import sys
 import re
 import gzip #detect if files are gunzip - uncomplete
 import datetime
+import string
 
 #create parser
 def parserfunc():
     my_parser = argparse.ArgumentParser(prog="ReadTrimmer", description="This is a read trimmer")
 
     #add the arguments
-    my_parser.add_argument("-files","-f", nargs="+", action="append",help="the file needed")
+    my_parser.add_argument("-files","-f", nargs="+",help="the file needed")
     my_parser.add_argument("-slidingwindow", nargs="?", default="4", type = int, help="size of the sliding window")
     my_parser.add_argument("-startcut", nargs="?",  default="8", type = int, help ="number of leading nucleotides to remove")
     my_parser.add_argument("-endcut", nargs="?", default="8", type = int, help="number of trailing nucleotides to remove")
     my_parser.add_argument("-minlength", nargs="?", default="100",type = int ,help ="minimum length of the read required")
+    my_parser.add_argument("-qualitythreshold", nargs="?", default="20",type = int ,help ="min quality level of read")
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt ".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
+def decompress(textwrapper):
+    for i in textwrapper:    
+        checkcompress = re.search(r"\w+.g[un]z[ip]",i)
+       # checkcompress = re.search(r"\w+.txt",i) ##test case
+        if checkcompress is not None:
+            print("is a zipped file")
+            return textwrapper
 
 def dict_creation(dict_file):
     """To create a dictionary from the infile data"""
@@ -138,18 +147,20 @@ def run():
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
-    
     try:
+        starter = decompress(start.files)
+        print(starter)
+        open_opt = gzip.open if starter is not None else open
         #checks number of files provided and makes TextWrapper list to iterate through belpow
-        if len(start.files[0]) == 2:
-            fastq = [open(start.files[0][0], "r"), open(start.files[0][1], "r")]
+        if len(start.files) == 2:
+            fastq = [open_opt(start.files[0], "r"), open_opt(start.files[1], "r")]
             size, num = (4 ,1)
-            
-        elif len(start.files[0]) == 1:
-            fastq = [open(start.files[0][0], "r")]
+        elif len(start.files) == 1:
+            fastq = [open_opt(start.files[0], "r")]
             size, num = (2 ,0)
         else:
             sys.exit("Only single file/two paired files allowed as input")
+            
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
         logfile = open("log_file.txt", "w")
@@ -165,7 +176,7 @@ def run():
                     read = ["".join(x) for i in read for x in i]
                 if size == 4:
                     pass
-                print(read[1])
+                print(read)
                 #still need to fix ability for functions to read two reads at once
                 dictionary = guess_encoding(read[0])
                 print(read[1], 'length', len(read[1]))
@@ -187,8 +198,6 @@ def run():
 
     except FileNotFoundError as e:
         print("file not found", e)  
-        now = datetime.datetime.now()
-        logfile.write(str(now),'\t', 'ERROR: File NOT FOUND!')
         
   
 if __name__ == "__main__":
