@@ -4,6 +4,7 @@ import argparse
 import sys
 import re
 import gzip #detect if files are gunzip - uncomplete
+import datetime
 
 #create parser
 def parserfunc():
@@ -18,7 +19,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f testfile.txt ".split())
    
     return args
     
@@ -151,7 +152,9 @@ def run():
             sys.exit("Only single file/two paired files allowed as input")
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
+        logfile = open("log_file.txt", "w")
         read = []
+
         #check if fastq format in first read and exit if so - unfinished
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -165,7 +168,9 @@ def run():
                 print(read[1])
                 #still need to fix ability for functions to read two reads at once
                 dictionary = guess_encoding(read[0])
+                print(read[1], 'length', len(read[1]))
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
+                print(quality_coversion, 'length', len(quality_coversion))
                 completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
                 print(completetrim[0])
@@ -176,9 +181,14 @@ def run():
                 if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
                     print(completetrim[0])
                 read = []
-                break
+        now = datetime.datetime.now()
+        # logfile.write(str(now)\t)
+        logfile.write('All reads from this FILE are CORRECTLY TRIMMED!')
+
     except FileNotFoundError as e:
         print("file not found", e)  
+        now = datetime.datetime.now()
+        logfile.write(str(now),'\t', 'ERROR: File NOT FOUND!')
         
   
 if __name__ == "__main__":
