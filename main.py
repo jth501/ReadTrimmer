@@ -16,12 +16,12 @@ def parserfunc():
     my_parser.add_argument("-slidingwindow", nargs="?", default="4", type = int, help="size of the sliding window")
     my_parser.add_argument("-startcut", nargs="?",  default="8", type = int, help ="number of leading nucleotides to remove")
     my_parser.add_argument("-endcut", nargs="?", default="8", type = int, help="number of trailing nucleotides to remove")
-    my_parser.add_argument("-minlength", nargs="?", default="100",type = int ,help ="minimum length of the read required")
+    my_parser.add_argument("-minlength", nargs="?", default="70",type = int ,help ="minimum length of the read required")
     my_parser.add_argument("-qualitythreshold", nargs="?", default="20",type = int ,help ="min quality level of read")
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt ".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
@@ -65,7 +65,6 @@ def guess_encoding(id_line):
     return dictionary
     
     
-    
 def translation_scores(quality_line, phred_dict, encoding_dict):
     """Function to translates Ascii characters into scores"""
     quality_scores = list()
@@ -73,7 +72,7 @@ def translation_scores(quality_line, phred_dict, encoding_dict):
     for char in quality_line:
         for key,val in phred_dict.items():
             if val[encoding_dict] == char:                   
-                quality_scores.append(int(key))       
+                quality_scores.append(int(key))     
     return quality_scores
 
 def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
@@ -131,13 +130,15 @@ def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_t
 def checklen(trimmed, minlen):
     if len(trimmed) > minlen:
         return trimmed
+    else: 
+        pass # write index to log file
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
     """check the meanquality of the trimmed read"""
     sumquality = 0
-    meanquality = sumquality/(len(qualityscore))
     for i in qualityscore:
         sumquality += i
+    meanquality = int(sumquality/(len(qualityscore)))
     if meanquality > qualitythreshold:
         return lenchecked
     
@@ -149,7 +150,6 @@ def run():
     phred_dict = dict_creation('coding_keys.txt')
     try:
         starter = decompress(start.files)
-        print(starter)
         open_opt = gzip.open if starter is not None else open
         #checks number of files provided and makes TextWrapper list to iterate through belpow
         if len(start.files) == 2:
@@ -200,11 +200,12 @@ def run():
                 number_G = initial_read.count('G')
 
                 dictionary = guess_encoding(read[0])
+                print(read[1], 'length', len(read[1]))
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) 
+                print(quality_coversion, 'length', len(quality_coversion))
+                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
                 completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
                 print(completetrim[0])
-
                 if len(completetrim[0]) != len(completetrim[1]):
                     sys.exit("Error - sequence length doesn't equal quality length")
                 if checklen(completetrim[0], minlen=50) is not None:
