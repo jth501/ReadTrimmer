@@ -1,9 +1,8 @@
-#!usr/bin/env python3
-
+#!/usr/bin/env python3
 import argparse
 import sys
 import re
-import gzip #detect if files are gunzip - uncomplete
+import gzip 
 import datetime
 import string
 
@@ -79,26 +78,32 @@ def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_t
     """ remove X nucleotides from 5 prime end
         return trimmed 5 prime
     """
-    # Remove X nucleotides
-    ltrim = read[leading:]
-    quality_scores = quality_scores[leading:]
-    quality_line = quality_line[leading:]
-    
-    # To calculate the average of a windows from 5'       
-    quality_average = 0
-    for value in range(len(quality_scores)-(window_size-1)):  
-        for i in range(window_size):  
-            quality_average += quality_scores[value+i]      
-        result = quality_average /window_size
-        quality_average = 0
+    try:
+        read = str(iter(read))
+        print(read)
+        # Remove X nucleotides
+        ltrim = read[leading:]
+        print(ltrim)
+        quality_scores = quality_scores[leading:]
+        quality_line = quality_line[leading:]
         
-        # To trim window until finding the FIRST ONE with good quality
-        if result >= quality_threshold:
-            quality_line = quality_line[value:]
-            quality_scores = quality_scores[value:]    
-            trimmed_seq = ltrim[value:]
-            break
-    return trimmed_seq,quality_scores, quality_line
+        # To calculate the average of a windows from 5'       
+        quality_average = 0
+        for value in range(len(quality_scores)-(window_size-1)):  
+            for i in range(window_size):  
+                quality_average += quality_scores[value+i]      
+            result = quality_average /window_size
+            quality_average = 0
+            
+            # To trim window until finding the FIRST ONE with good quality
+            if result >= quality_threshold:
+                quality_line = quality_line[value:]
+                quality_scores = quality_scores[value:]    
+                trimmed_seq = ltrim[value:]
+                break
+            next(read)
+    except StopIteration:
+        return trimmed_seq,quality_scores, quality_line
     
 def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_threshold):
     """ remove X nucleotides from 3 prime end
