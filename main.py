@@ -21,7 +21,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to otger file for testing
-    args = my_parser.parse_args("-f testfile.txt ".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
@@ -190,6 +190,19 @@ def run():
         logfile = open("log_file.txt", "w")
         read = []
 
+        # Counter to keep track of trimmed and removed reads
+        trimmed_reads = 0
+        removed_reads = 0
+        
+        #Counter to keep track of statistics
+        number_entries = 0
+        number_A = 0
+        number_C = 0
+        number_T = 0
+        number_G = 0
+        length_entries = list()
+
+
         #check if fastq format in first read and exit if so - unfinished
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -200,6 +213,16 @@ def run():
                     read = ["".join(x) for i in read for x in i]
                 if size == 4:
                     pass
+                number_entries += 1
+                length_entries.append(len(read[1]))
+
+                #still need to fix ability for functions to read two reads at once
+                initial_read = read[1]
+                number_A = initial_read.count('A')
+                number_C = initial_read.count('C')
+                number_T = initial_read.count('T')
+                number_G = initial_read.count('G')
+
                 dictionary = guess_encoding(read[0])
                 #convert ascii values for each read/single read to decimal value
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
@@ -226,13 +249,62 @@ def run():
                 else:
                     outfile.write("{0}\n{1}\n{2}\n{3}\n".format(read[0],completetrim[0], read[2],read[3][:len(completetrim[0])]))
                     #write to second output file if there are two reads
+                print(read[1], 'length', len(read[1]))
+                quality_coversion = translation_scores(read[3], phred_dict, dictionary)
+                print(quality_coversion, 'length', len(quality_coversion))
+                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
+                completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
+                print(completetrim[0])
+                if len(completetrim[0]) != len(completetrim[1]):
+                    sys.exit("Error - sequence length doesn't equal quality length")
+                if checklen(completetrim[0], minlen=50) is not None:
+                    pass
+                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
+                    print(completetrim[0])
+
+                #To check if the read has been trimmed or removed
+                if len(completetrim[0]) != len(initial_read):
+                    trimmed_reads += 1
+                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) or checklen(completetrim[0], minlen=50) is None:
+                    removed_reads += 1
                 read = []
+
+        # To put the results in a log file
         now = datetime.datetime.now()
-        # logfile.write(str(now)\t)
-        logfile.write('All reads from this FILE are CORRECTLY TRIMMED!')
+        print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
+        print('Number of trimmed reads:\t', trimmed_reads, file = logfile )
+        print('Number of removed reads:\t', removed_reads, file = logfile)
+        print('\nSTATISTICS (file without trimming):', file = logfile )
+
+        print('Number of entries:\t',number_entries, file = logfile )
+        print('Number of each bases:\t', file = logfile )
+        print('\tNumber A:\t',number_A, file = logfile )
+        print('\tNumber C:\t',number_C, file = logfile )
+        print('\tNumber T:\t',number_T, file = logfile )
+        print('\tNumber G:\t',number_G, file = logfile )
+
+        print('Length of each entry:\t', file = logfile )
+        for i in range(1,number_entries+1):
+            print('\tEntry\t', i, ':\t', length_entries[i-1], file = logfile)
+
+
+
+        print('Average length of entries:\t', file = logfile )
+        print('Quality average length of entries:\t', file = logfile )
+        print('Best 10% quality entries:\t', file = logfile )
+        print('Worst 10% quality entries:\t', file = logfile )
+
+
+
+
 
     except FileNotFoundError as e:
-        print("file not found", e)  
+        print("file not found", e) 
+        # To put the results in a log file
+        now = datetime.datetime.now()
+        print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
+
+         
         
   
 if __name__ == "__main__":
