@@ -1,5 +1,4 @@
-#!usr/bin/env python3
-
+#!user/bin/env python3
 import argparse
 import sys
 import re
@@ -26,12 +25,22 @@ def parserfunc():
     return args
     
 def decompress(textwrapper):
-    for i in textwrapper:    
+    """ check if files are fasta files - returns false and exits if not
+        if true files are checked for compressiion status and decompressed if necessary
+        returns 
+    """
+    fqcheck = (".fq", ".fastq", ".fq.gz", ".fastq.gz",".txt") #remove testcase txt
+    for i in textwrapper:
+        if i.endswith(fqcheck):
+            print("file is in fastq format")
+        else:
+             return False
         checkcompress = re.search(r"\w+.g[un]z[ip]",i)
-       # checkcompress = re.search(r"\w+.txt",i) ##test case
-        if checkcompress is not None:
-            print("is a zipped file")
-            return textwrapper
+        # checkcompress = re.search(r"\w+.txt",i) ##test case
+        if checkcompress is None:
+            print("not a zipped file")
+        else:
+            return True
 
 def dict_creation(dict_file):
     """To create a dictionary from the infile data"""
@@ -66,13 +75,19 @@ def guess_encoding(id_line):
     
     
 def translation_scores(quality_line, phred_dict, encoding_dict):
-    """Function to translates Ascii characters into scores"""
+    """Function to translates Ascii characters into scores
+        returns list of scores
+    """
     quality_scores = list()
-    #To translate characters into scores
-    for char in quality_line:
-        for key,val in phred_dict.items():
-            if val[encoding_dict] == char:                   
-                quality_scores.append(int(key))     
+    #To translate characters into scores fpr
+    for qualscore in quality_line:
+        score = []
+        for char in qualscore:
+            for key,val in phred_dict.items():
+                if val[encoding_dict] == char:                   
+                    score.append(int(key))
+        quality_scores.append(score)  
+        score = []
     return quality_scores
 
 def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
@@ -142,10 +157,12 @@ def checklen(trimmed, minlen):
             return False # write index to log file
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
-    """check the meanquality of the trimmed read"""
+    """ calculates average qulaity of all the scores from a read
+        returns read if average is greater than quality threshold level
+    """
     sumquality = 0
     for i in qualityscore:
-        sumquality += i
+        sumquality += int(i)
     meanquality = int(sumquality/(len(qualityscore)))
     if meanquality > qualitythreshold:
         return True
@@ -167,15 +184,33 @@ def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
             trimmedf = forward[value:]
     trimmed.append(trimmedf)
     
+    #trim reverse read from the 5 prime side
+    for value in range(0,len(qualityscores[1])):
+        if sum(qualityscores[1][-(value+3):])/3 > qualthresh:
+            trimmedr = reverse
+            break
+        else:
+            trimmedr = reverse[:-(value)]
+    trimmed.append(trimmedr)
+
+    #check if reads are the same length to discard later
+    if len(trimmedf) != len(trimmedr):
+        trimmed.append(False)
+    return trimmed
+
 def run():
     """Location to run all the functions, open the file from parser
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
     try:
+        #check if file is fastq and if compressed change open function
         starter = decompress(start.files)
-        open_opt = gzip.open if starter is not None else open
-        #checks number of files provided and makes TextWrapper list to iterate through belpow
+        if starter is False:
+            sys.exit("The file is not in fastq format \nOnly .fq, .fastq, .fq.gz, .fastq.gz format accepted")
+        open_opt = gzip.open if starter is True else open
+        
+        #checks number of files provided and makes list to iterate through them
         if len(start.files) == 2:
             fastq = [open_opt(start.files[0], "r"), open_opt(start.files[1], "r")]
             size, num = (4 ,1)
@@ -202,8 +237,7 @@ def run():
         number_G = 0
         length_entries = list()
 
-
-        #check if fastq format in first read and exit if so - unfinished
+        #map reads together if paired - else read single read
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
             read.append(line)
@@ -249,26 +283,7 @@ def run():
                 else:
                     outfile.write("{0}\n{1}\n{2}\n{3}\n".format(read[0],completetrim[0], read[2],read[3][:len(completetrim[0])]))
                     #write to second output file if there are two reads
-                print(read[1], 'length', len(read[1]))
-                quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                print(quality_coversion, 'length', len(quality_coversion))
-                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
-                completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
-                print(completetrim[0])
-                if len(completetrim[0]) != len(completetrim[1]):
-                    sys.exit("Error - sequence length doesn't equal quality length")
-                if checklen(completetrim[0], minlen=50) is not None:
-                    pass
-                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) is not None:
-                    print(completetrim[0])
-
-                #To check if the read has been trimmed or removed
-                if len(completetrim[0]) != len(initial_read):
-                    trimmed_reads += 1
-                if meanquality(completetrim[0],completetrim[1],qualitythreshold=40) or checklen(completetrim[0], minlen=50) is None:
-                    removed_reads += 1
                 read = []
-
         # To put the results in a log file
         now = datetime.datetime.now()
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
@@ -287,16 +302,10 @@ def run():
         for i in range(1,number_entries+1):
             print('\tEntry\t', i, ':\t', length_entries[i-1], file = logfile)
 
-
-
         print('Average length of entries:\t', file = logfile )
         print('Quality average length of entries:\t', file = logfile )
         print('Best 10% quality entries:\t', file = logfile )
         print('Worst 10% quality entries:\t', file = logfile )
-
-
-
-
 
     except FileNotFoundError as e:
         print("file not found", e) 
@@ -304,9 +313,7 @@ def run():
         now = datetime.datetime.now()
         print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
 
-         
-        
-  
+
 if __name__ == "__main__":
     run()
 else:
