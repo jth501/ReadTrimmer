@@ -19,7 +19,7 @@ def parserfunc():
     my_parser.add_argument("-qualitythreshold", nargs="?", default="20",type = int ,help ="min quality level of read")
 
     #execute the parser method
-    #parameters here are currenty tests but can be rewritten to otger file for testing
+    #parameters here are currenty tests but can be rewritten to other file for testing
     args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
@@ -78,8 +78,11 @@ def translation_scores(quality_line, phred_dict, encoding_dict):
     """Function to translates Ascii characters into scores
         returns list of scores
     """
+    #make score a list if single input
+    if len(quality_line) != 2:
+        quality_line = [quality_line]
     quality_scores = list()
-    #To translate characters into scores fpr
+    #To translate characters into scores for read/ reads
     for qualscore in quality_line:
         score = []
         for char in qualscore:
@@ -90,7 +93,7 @@ def translation_scores(quality_line, phred_dict, encoding_dict):
         score = []
     return quality_scores
 
-def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_threshold):
+def lefttrim(read, quality_scores, quality_line, leading, window_size, quality_threshold):
     """ remove X nucleotides from 5 prime end
         return trimmed 5 prime
     """
@@ -115,7 +118,7 @@ def lefttrim(read, leading, quality_scores, quality_line, window_size, quality_t
             break
     return trimmed_seq,quality_scores, quality_line
     
-def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_threshold):
+def righttrim(read,quality_scores, quality_line,trailing, window_size,quality_threshold):
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
     """
@@ -146,32 +149,30 @@ def checklen(trimmed, minlen):
     """ checks the length of the trimmed read
         returns read of greater than minimum length
     """
-    #print(trimmed)
     for seq in trimmed:
-        print(seq)
-        print(len(seq))
         if len(seq) > minlen:
-            print(0)
             return True
         else: 
             return False # write index to log file
         
-def meanquality(lenchecked, qualityscore, qualitythreshold):
+def meanquality(qualityscore, qualitythreshold):
     """ calculates average qulaity of all the scores from a read
         returns read if average is greater than quality threshold level
     """
-    sumquality = 0
-    for i in qualityscore:
-        sumquality += int(i)
-    meanquality = int(sumquality/(len(qualityscore)))
-    if meanquality > qualitythreshold:
-        return True
-    else:
-        return False
+    end = False
+    for score in qualityscore:
+        sumquality = 0
+        for i in score:
+            sumquality += int(i)
+        meanquality = int(sumquality/(len(qualityscore)))
+        if meanquality > qualitythreshold:
+            end = True
+    return end
     
 def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
-    forward = read[0][leading:]
-    reverse = read[1][:-trailing]
+    #remove adapters
+    forward = read[0][leading:(-leading-1)]
+    reverse = read[1][trailing:(-trailing-1)]
     #cut from left and right at the same time until trim stops - should be equal
     
     #trim forward read from the 5 prime side
@@ -219,24 +220,20 @@ def run():
             size, num = (2 ,0)
         else:
             sys.exit("Only single file/two paired files allowed as input")
-            
-        #create output file to write to and initialise read   
-        outfile = open("outfile.txt", "w")
-        logfile = open("log_file.txt", "w")
-        read = []
-
+      
         # Counter to keep track of trimmed and removed reads
-        trimmed_reads = 0
-        removed_reads = 0
+        trimmed_reads, removed_reads = (0,0)
         
         #Counter to keep track of statistics
-        number_entries = 0
-        number_A = 0
-        number_C = 0
-        number_T = 0
-        number_G = 0
+        number_entries, number_A, number_C, number_T ,number_G = (0,0,0,0,0)
         length_entries = list()
-
+      
+        #create output file to write to and initialise read   
+        outfile = open("outfile.txt", "w")
+        outfile2 = open("outfile2.txt", "w")
+        logfile = open("log_file.txt", "w")
+        read = []
+        
         #map reads together if paired - else read single read
         for line in map(list,zip(fastq[0],fastq[num])):
             line = [x.strip() for x in line]
@@ -260,30 +257,58 @@ def run():
                 dictionary = guess_encoding(read[0])
                 #convert ascii values for each read/single read to decimal value
                 quality_coversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
-                #take paired read
+                ################################################################################################## 
+                #take paired reads and trim or single read
+                #print(read)
                 if len(read[1]) == 2:
-                    completetrim = pairedend(read[1], start.startcut, start.endcut,quality_coversion,start.slidingwindow,start.qualitythreshold)
-                elif len(read[1]) == 1:
-                    completeleft = lefttrim(read[1],start.startcut,quality_coversion, read[3], start.slidingwindow, start.qualitythreshol ) # third parameter will be from arg parse
-                    completetrim = righttrim(completeleft[0], start.endcut, completeleft[1],completeleft[2], start.slidingwindow,start.qualitythreshold )
+                    completetrim = pairedend(read[1], start.startcut, start.endcut,
+                                             quality_coversion,start.slidingwindow, start.qualitythreshold)
+                   
+                elif len(read) == 4:
+                    completeleft = lefttrim(read[1],quality_coversion[0],read[3], 
+                                            start.startcut, start.slidingwindow, start.qualitythreshold) # third parameter will be from arg parse
+                
+                    completetrim = righttrim(completeleft[0], completeleft[1], completeleft[2],
+                                            start.endcut, start.slidingwindow, start.qualitythreshold)
+                    #print(completetrim)
                     if len(completetrim[0]) != len(completetrim[1]):
                         sys.exit("Error - sequence length doesn't equal quality length")
                 else:
                     sys.exit("there is an error in file processing, try again")
-            
+                ################################################################################################## 
                 if completetrim == None:
                     print("The reads could not be processed")
                 #TODO: need to format the output into two files for two reads
+                #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
                 #To check if the read has been trimmed or removed
                 if len(completetrim[0]) != len(initial_read):
+                    print("read trimmed")
                     trimmed_reads += 1
-                if meanquality(completetrim[0],quality_coversion[0][:len(completetrim[0])],qualitythreshold=30) or checklen(completetrim[0], minlen=50) is False:
-                    print("check why checklen is false")
+                trimmedqual = quality_coversion[:len(completetrim[0])] 
+                #TODO: check if this works
+                if meanquality(trimmedqual,qualitythreshold=30) is False:
+                    print("read removed mean")
+                elif checklen(completetrim, minlen=50) is False:
+                    print("read removed too short ")
                     removed_reads += 1
                 else:
-                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format(read[0],completetrim[0], read[2],read[3][:len(completetrim[0])]))
-                    #write to second output file if there are two reads
+                    ################################################################################################## 
+                    if size == 4:
+                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),"".join(completetrim[0]), 
+                                                                    "".join(read[2][1]),"".join(read[3][0][:len(completetrim[0])])))
+                        outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),"".join(completetrim[1]),
+                                                                     "".join(read[2][1]),"".join(read[3][1][:len(completetrim[0])])))         
+                    elif size == 2:
+                        print(9)
+                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]), 
+                                                                    "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
+                       
+                #write to second output file if there are two reads
                 read = []
+        for i in fastq:
+            i.close()
+        outfile.close()
+        outfile2.close()
         # To put the results in a log file
         now = datetime.datetime.now()
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
@@ -307,6 +332,8 @@ def run():
         print('Best 10% quality entries:\t', file = logfile )
         print('Worst 10% quality entries:\t', file = logfile )
 
+        
+        
     except FileNotFoundError as e:
         print("file not found", e) 
         # To put the results in a log file
