@@ -128,10 +128,18 @@ def righttrim(read, trailing, quality_scores, quality_line,window_size,quality_t
     return trimmed_seq,quality_scores, quality_line
 
 def checklen(trimmed, minlen):
-    if len(trimmed) > minlen:
-        return trimmed
-    else: 
-        pass # write index to log file
+    """ checks the length of the trimmed read
+        returns read of greater than minimum length
+    """
+    #print(trimmed)
+    for seq in trimmed:
+        print(seq)
+        print(len(seq))
+        if len(seq) > minlen:
+            print(0)
+            return True
+        else: 
+            return False # write index to log file
         
 def meanquality(lenchecked, qualityscore, qualitythreshold):
     """check the meanquality of the trimmed read"""
@@ -140,8 +148,24 @@ def meanquality(lenchecked, qualityscore, qualitythreshold):
         sumquality += i
     meanquality = int(sumquality/(len(qualityscore)))
     if meanquality > qualitythreshold:
-        return lenchecked
+        return True
+    else:
+        return False
     
+def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
+    forward = read[0][leading:]
+    reverse = read[1][:-trailing]
+    #cut from left and right at the same time until trim stops - should be equal
+    
+    #trim forward read from the 5 prime side
+    trimmed = []
+    for value in range(0,len(qualityscores[0])):
+        if sum(qualityscores[0][value:value+3])/3 > qualthresh:
+            trimmedf = forward
+            break
+        else:
+            trimmedf = forward[value:]
+    trimmed.append(trimmedf)
     
 def run():
     """Location to run all the functions, open the file from parser
@@ -177,16 +201,31 @@ def run():
                 if size == 4:
                     pass
                 dictionary = guess_encoding(read[0])
-                quality_coversion = translation_scores(read[3], phred_dict, dictionary)
-                completeleft = lefttrim(read[1], 8,quality_coversion, read[3], start.slidingwindow, start.startcut ) # third parameter will be from arg parse
-                completetrim = righttrim(completeleft[0], 8, completeleft[1],completeleft[2], start.slidingwindow, start.endcut )
-                if len(completetrim[0]) != len(completetrim[1]):
-                    sys.exit("Error - sequence length doesn't equal quality length")
-                if checklen(completetrim[0], minlen=50) is not None:
-                    pass
-                if meanquality(completetrim[0],completetrim[1],start.qualitythreshold) is not None:
-                    
-                    outfile.write("{0}\n\n{1}\n".format(completetrim[0], completetrim[2]))
+                #convert ascii values for each read/single read to decimal value
+                quality_coversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
+                #take paired read
+                if len(read[1]) == 2:
+                    completetrim = pairedend(read[1], start.startcut, start.endcut,quality_coversion,start.slidingwindow,start.qualitythreshold)
+                elif len(read[1]) == 1:
+                    completeleft = lefttrim(read[1],start.startcut,quality_coversion, read[3], start.slidingwindow, start.qualitythreshol ) # third parameter will be from arg parse
+                    completetrim = righttrim(completeleft[0], start.endcut, completeleft[1],completeleft[2], start.slidingwindow,start.qualitythreshold )
+                    if len(completetrim[0]) != len(completetrim[1]):
+                        sys.exit("Error - sequence length doesn't equal quality length")
+                else:
+                    sys.exit("there is an error in file processing, try again")
+            
+                if completetrim == None:
+                    print("The reads could not be processed")
+                #TODO: need to format the output into two files for two reads
+                #To check if the read has been trimmed or removed
+                if len(completetrim[0]) != len(initial_read):
+                    trimmed_reads += 1
+                if meanquality(completetrim[0],quality_coversion[0][:len(completetrim[0])],qualitythreshold=30) or checklen(completetrim[0], minlen=50) is False:
+                    print("check why checklen is false")
+                    removed_reads += 1
+                else:
+                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format(read[0],completetrim[0], read[2],read[3][:len(completetrim[0])]))
+                    #write to second output file if there are two reads
                 read = []
         now = datetime.datetime.now()
         # logfile.write(str(now)\t)
