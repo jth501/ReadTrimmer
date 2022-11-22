@@ -204,6 +204,7 @@ def run():
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
+    logfile = open("log_file.txt", "w")
     try:
         #check if file is fastq and if compressed change open function
         starter = decompress(start.files)
@@ -223,7 +224,6 @@ def run():
       
         # Counter to keep track of trimmed and removed reads
         trimmed_reads, removed_reads = (0,0)
-        
         #Counter to keep track of statistics
         number_entries, number_A, number_C, number_T ,number_G = (0,0,0,0,0)
         length_entries = list()
@@ -231,7 +231,6 @@ def run():
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
         outfile2 = open("outfile2.txt", "w")
-        logfile = open("log_file.txt", "w")
         read = []
         
         #map reads together if paired - else read single read
@@ -241,18 +240,36 @@ def run():
             #read length is 2 for single but 4 for paired
             if len(read) == size:
                 if size == 2:
-                    read = ["".join(x) for i in read for x in i]
-                if size == 4:
-                    pass
-                number_entries += 1
-                length_entries.append(len(read[1]))
+                    read = ["".join(x) for i in read for x in i]   
+                    number_entries += 1
+                    initial_read = read[1]
+                    number_A = initial_read.count('A')
+                    number_C = initial_read.count('C')
+                    number_T = initial_read.count('T')
+                    number_G = initial_read.count('G')
 
-                #still need to fix ability for functions to read two reads at once
-                initial_read = read[1]
-                number_A = initial_read.count('A')
-                number_C = initial_read.count('C')
-                number_T = initial_read.count('T')
-                number_G = initial_read.count('G')
+                if size == 4:
+                    number_entries += 2
+                    pass
+                    #still need to fix ability for functions to read two reads at once
+                    #Number of bases in forward entries
+                    initial_read_f = read[1][0]
+                    number_A = initial_read_f.count('A')
+                    number_C = initial_read_f.count('C')
+                    number_T = initial_read_f.count('T')
+                    number_G = initial_read_f.count('G')
+
+                    #Number of bases in reverse entries
+                    initial_read_r = read[1][1]
+                    number_A += initial_read_r.count('A')
+                    number_C += initial_read_r.count('C')
+                    number_T += initial_read_r.count('T')
+                    number_G += initial_read_r.count('G')
+                    
+                    #Length of each entry
+                    length_entries.append(len(initial_read_f))
+                    length_entries.append(len(initial_read_r))
+                    print
 
                 dictionary = guess_encoding(read[0])
                 #convert ascii values for each read/single read to decimal value
@@ -270,7 +287,6 @@ def run():
                 
                     completetrim = righttrim(completeleft[0], completeleft[1], completeleft[2],
                                             start.endcut, start.slidingwindow, start.qualitythreshold)
-                    #print(completetrim)
                     if len(completetrim[0]) != len(completetrim[1]):
                         sys.exit("Error - sequence length doesn't equal quality length")
                 else:
@@ -278,12 +294,15 @@ def run():
                 ################################################################################################## 
                 if completetrim == None:
                     print("The reads could not be processed")
+
                 #TODO: need to format the output into two files for two reads
                 #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
                 #To check if the read has been trimmed or removed
-                if len(completetrim[0]) != len(initial_read):
-                    print("read trimmed")
+                if len(completetrim[0][0]) != len(initial_read_f)  :
                     trimmed_reads += 1
+                if len(completetrim[0][1]) != len(initial_read_r)  :
+                    trimmed_reads += 1
+            
                 trimmedqual = quality_coversion[:len(completetrim[0])] 
                 #TODO: check if this works
                 if meanquality(trimmedqual,qualitythreshold=30) is False:
@@ -324,11 +343,23 @@ def run():
         print('\tNumber G:\t',number_G, file = logfile )
 
         print('Length of each entry:\t', file = logfile )
+    
         for i in range(1,number_entries+1):
             print('\tEntry\t', i, ':\t', length_entries[i-1], file = logfile)
+        
+        sum = 0    
+        for i in length_entries:
+            sum += i
+        average_length = sum/number_entries
 
-        print('Average length of entries:\t', file = logfile )
-        print('Quality average length of entries:\t', file = logfile )
+        print('Average length of entries:\t', average_length, file = logfile )
+        for x in len(quality_coversion):
+            for i in quality_coversion[x]: 
+                print(x)
+
+
+        print('1', quality_coversion[0],'\n','2', quality_coversion[1])
+        print('Quality average of entries:\t', file = logfile )
         print('Best 10% quality entries:\t', file = logfile )
         print('Worst 10% quality entries:\t', file = logfile )
 
