@@ -1,0 +1,28 @@
+2022-11-23 10:26:45.150716 	 All reads from this FILE were CORRECTLY TRIMMED!
+Number of trimmed reads:	 10
+Number of removed reads:	 0
+
+STATISTICS (file without trimming):
+Number of entries:	 10
+Number of each bases:	
+	Number A:	 51
+	Number C:	 51
+	Number T:	 59
+	Number G:	 41
+Length of each entry:	
+	Entry	 1 :	 101
+	Entry	 2 :	 101
+	Entry	 3 :	 101
+	Entry	 4 :	 101
+	Entry	 5 :	 101
+	Entry	 6 :	 101
+	Entry	 7 :	 101
+	Entry	 8 :	 101
+	Entry	 9 :	 101
+	Entry	 10 :	 101
+Average length of entries:	 101.0
+Quality average of entries:	 37.28
+Best 10% quality entries:	
+	Entry: 1 	Average quality: 38.62
+Worst 10% quality entries:	
+	Entry: 4 	Average quality: 33.15
