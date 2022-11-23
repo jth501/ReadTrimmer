@@ -261,6 +261,7 @@ def run():
                 #take paired reads and trim or single read
                 #print(read)
                 if len(read[1]) == 2:
+                    #TODO: check if id numbers oare the same in identity line
                     completetrim = pairedend(read[1], start.startcut, start.endcut,
                                              quality_coversion,start.slidingwindow, start.qualitythreshold)
                    
