@@ -240,12 +240,16 @@ def run():
         for key,value in col_names.items():
 	        print('\t',key, ':', value, file = logfile)
         print('\nDETAILED STATISTICS RESULTS', file = logfile)
-        print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A. len', 'A. qual'), file = logfile)
+        print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A.len', 'A.qual'), file = logfile)
         read = []
         
         #map reads together if paired - else read single read
         for line in map(list,zip(fastq[0],fastq[num])):
+            if line == '':
+                print('Error in entry number', number_entries+1, ' : the line is empty!')
+                break
             line = [x.strip() for x in line]
+            
             read.append(line)
             #read length is 2 for single but 4 for paired
             if len(read) == len(start.files)*2:   

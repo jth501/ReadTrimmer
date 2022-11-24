@@ -1,4 +1,4 @@
-2022-11-24 12:05:19.667499 	 All reads from this FILE were CORRECTLY TRIMMED!
+2022-11-24 14:24:27.004213 	 All reads from this FILE were CORRECTLY TRIMMED!
 LEGEND 
 	 No : Number of entry
 	 Tm : No trimmed reads
@@ -12,7 +12,7 @@ LEGEND
 	 A.qual : Average quality
 
 DETAILED STATISTICS RESULTS
-No	Tm	Rm	A	T	C	G	Len	A. len	A. qual
+No	Tm	Rm	A	T	C	G	Len	A.len	A.qual
 1	0	0	61	2	6	31	101	101.0	37.82
 2	0	0	43	17	23	17	101	101.0	35.49
 3	0	0	32	26	21	22	101	101.0	36.28
