@@ -249,7 +249,8 @@ def run():
                     number_C = initial_read.count('C')
                     number_T = initial_read.count('T')
                     number_G = initial_read.count('G')
-
+                    #Length of each entry
+                    length_entries.append(len(initial_read))
                 if size == 4:
                     number_entries += 2
                     pass
