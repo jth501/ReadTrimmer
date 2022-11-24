@@ -243,7 +243,7 @@ def run():
         'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality'}
         for key,value in col_names.items():
 	        print('\t',key, ':', value, file = logfile)
-        print('\nDETAILED STATISTICS RESULTS', file = logfile)
+        print('DETAILED STATISTICAL RESULTS', file = logfile)
         print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A.len', 'A.qual'), file = logfile)
         read = []
         
