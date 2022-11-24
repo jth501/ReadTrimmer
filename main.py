@@ -20,7 +20,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to other file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f BRISCOE_0069_BD18RUACXX_L2_1_pf.fastq BRISCOE_0069_BD18RUACXX_L2_2_pf.fastq".split())
    
     return args
     
@@ -235,7 +235,7 @@ def run():
       
         #Counter  and lists to keep track of statistics
         trimmed_reads, removed_reads = (0,0)
-        number_entries, number_A, number_C, number_T ,number_G = (0,0,0,0,0)
+        number_entries, number_A, number_C, number_T ,number_G, number_N, N_20, N_10, N_05, N_max = (0,0,0,0,0,0,0,0,0,0)
         length_entries = list()
         conversion_list = list()
         quality_list = list()
@@ -247,7 +247,7 @@ def run():
         #Write in log file
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
         print('LEGEND ', file = logfile)
-        col_names = {'No': 'Number of entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
+        col_names = {'Id': 'Identifier of the entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
         'A':'Number of A bases','T':'Number of T bases', 'C':'Number of C bases', 'G':'Number of G bases',
         'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality of the read'}
         for key,value in col_names.items():
@@ -291,6 +291,19 @@ def run():
                     number_C = initial_read.count('C')
                     number_T = initial_read.count('T')
                     number_G = initial_read.count('G')
+                    number_N = initial_read.count('N')
+
+                    #Check the percentage of N bases   
+                    if number_N >= 0.2*len(read[1]):
+                        print('Too many N bases in the read, file = logfile')
+                        N_max += 1
+                        sys.exit("there are too many N bases")
+                    if number_N < 0.2*len(read[1]) and number_N >= 0.1*len(read[1]):
+                        N_20 += 1
+                    if number_N < 0.1*len(read[1]) and number_N <= 0.05*len(read[1]):
+                        N_10 += 1
+                    if number_N < 0.05*len(read[1]):
+                        N_05 += 1
                     
                     #Length of each entry
                     length_entries.append(len(initial_read))
@@ -308,10 +321,10 @@ def run():
 
                     #To calculate statistics results
                     #Average length
-                    sum = 0    
+                    sum_length = 0    
                     for i in length_entries:
-                        sum += i
-                    average_length = sum/number_entries
+                        sum_length += i
+                    average_length = sum_length/number_entries
                     #Average quality of each entry
                     for i in quality_list:
                         sum_list += i
@@ -346,6 +359,21 @@ def run():
                     number_C = initial_read_f.count('C')
                     number_T = initial_read_f.count('T')
                     number_G = initial_read_f.count('G')
+                    number_N = initial_read_f.count('N')
+
+                    #Check the percentage of N bases   
+                    if number_N >= 0.2*len(read[1][0]):
+                        N_max += 1
+                        print('Too many N bases in the read, file = logfile')
+                        sys.exit("there are too many N bases")
+
+                    if number_N < 0.2*len(read[1][0]) and number_N >= 0.1*len(read[1][0]):
+                        N_20 += 1
+                    if number_N < 0.1*len(read[1][0]) and number_N >= 0.05*len(read[1][0]):
+                        N_10 += 1
+                    if number_N < 0.05*len(read[1][0]):
+                        N_05 += 1
+                    number_N = 0   
 
                     #Number of bases in reverse entries
                     initial_read_r = read[1][1]
@@ -353,6 +381,19 @@ def run():
                     number_C += initial_read_r.count('C')
                     number_T += initial_read_r.count('T')
                     number_G += initial_read_r.count('G')
+                    number_N = initial_read_r.count('N')
+
+                    #Check the percentage of N bases      
+                    if number_N >= 0.2*len(read[1][1]):
+                        N_max += 1
+                        print('Too many N bases in the read, file = logfile')
+                        sys.exit("there are too many N bases")
+                    if number_N < 0.2*len(read[1][1]) and number_N >= 0.1*len(read[1][1]):
+                        N_20 += 1
+                    if number_N < 0.1*len(read[1][1]) and number_N >= 0.05*len(read[1][1]):
+                        N_10 += 1
+                    if number_N < 0.05*len(read[1][1]):
+                        N_05 += 1
                     
                     #Length of each entry
                     length_read = (len(initial_read_f)+len(initial_read_r))/2
@@ -360,16 +401,15 @@ def run():
                    
                     #To calculate statistics results
                     #Average length
-                    sum = 0    
+                    sum_length = 0    
                     for i in length_entries:
-                        sum += i
-                    average_length = sum/number_entries
+                        sum_length += i
+                    average_length = sum_length/number_entries
 
                     #Average quality of each entry
                     for i in quality_list:
                         sum_list += i
                     total_average = sum_list / len(quality_list)
-                    print('len quality', len(quality_list)   )
 
                     print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(number_entries, trimmed_reads,removed_reads,number_A, number_T, number_C,number_G,length_entries[-1],average_length, round(total_average,2)), file = logfile)
         
@@ -379,8 +419,9 @@ def run():
                     #To check if the read has been trimmed or removed
                     if meanquality(completetrim[2],qualitythreshold=30) is False:
                         removed_reads += 1
-                    elif checklen(completetrim[0], minlen=50) is False:
+                    if checklen(completetrim[0], minlen=50) is False:
                         removed_reads += 1
+                    
                     #write paired read to file if the identifiers match
                     elif read[0][0][:-6] != read[0][1][:-6]:
                         break
@@ -412,6 +453,11 @@ def run():
         print('\nSTATISTICS SUMMARY:', file = logfile )
         print('\tAverage length of entries:\t', round(average_length,2), file = logfile )
         print('\tQuality average of entries:\t',round(total_average,2), file = logfile )
+        print('\tN percentage per reads:\t', file = logfile )
+        print('\t\tLess than 5%:\t',N_05,'reads', file = logfile )
+        print('\t\tBetween  5-10%:\t',N_10, 'reads', file = logfile )
+        print('\t\tBetween  10-20%:\t',N_20, 'reads', file = logfile )
+        print('\tNumber of removed reds due to N %:\t',N_max, 'reads', file = logfile )
         print('\tBest 10% quality entries:\t', file = logfile )
         if number_entries >= 10:
             for j in best10:
@@ -426,7 +472,7 @@ def run():
                 print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile)
         else:
             print('\t\t','Error: To little number of entries (Atl least, 10 entries are needed)', file=logfile )
-        
+
     
     except FileNotFoundError as e:
         now = datetime.datetime.now()
