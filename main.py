@@ -170,6 +170,10 @@ def meanquality(qualityscore, qualitythreshold):
     return end
     
 def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
+    """ inputs a list of two reads that are adpater removed based on the leading and trailing 
+        values. Then trimmed based on the quality line and checks the length are the same before
+        returning a listed of trimmed files
+    """ 
     #remove adapters
     forward = read[0][leading:(-leading-1)]
     reverse = read[1][trailing:(-trailing-1)]
@@ -246,7 +250,7 @@ def run():
                 #Average quality for each entry
                 (sum_1, sum_2,sum_list)= (0,0,0)
                 
-                if  len((start.files))*2 == 2:
+                if  len(read) == 2:
                     read = ["".join(x) for i in read for x in i] 
                     #convert reads and trim
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
@@ -271,7 +275,7 @@ def run():
                     #TODO: check if id numbers oare the same in identity line
                     outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]), 
                                                                     "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
-                elif len(start.files)*2 == 4:
+                elif len(read) == 4:
                     
                     #convert ascii values for each read/single read to decimal value
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
@@ -282,6 +286,7 @@ def run():
                         sum_1 += i
                     average_quality_1= sum_1/len(quality_conversion[0])
                     quality_list.append(average_quality_1)
+                    
                     for i in quality_conversion[1]:
                         sum_2 += i
                     average_quality_2= sum_2/len(quality_conversion[1])
@@ -317,9 +322,6 @@ def run():
                     
                 if len(completetrim[0]) != len(completetrim[1]):
                         sys.exit("Error - sequence length doesn't equal quality length")
-                    
-                if completetrim == None:
-                    print("The reads could not be processed")
 
                 #TODO: need to format the output into two files for two reads
                 #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
