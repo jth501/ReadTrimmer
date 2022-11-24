@@ -20,7 +20,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to other file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f testfile.txt ".split())
    
     return args
     
@@ -251,6 +251,8 @@ def run():
                     number_G = initial_read.count('G')
                     #Length of each entry
                     length_entries.append(len(initial_read))
+                    print(initial_read)
+
                 if size == 4:
                     number_entries += 2
                     pass
@@ -277,6 +279,7 @@ def run():
                 dictionary = guess_encoding(read[0])
                 #convert ascii values for each read/single read to decimal value
                 quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
+                print('quality output', quality_conversion)
                 #Average quality for each entry
                 (sum_1, sum_2,sum_list)= (0,0,0)
                 if size == 4:
@@ -290,7 +293,7 @@ def run():
                     quality_list.append(average_quality_2)
 
                 if size == 2:
-                    for i in quality_conversion:
+                    for i in quality_conversion[0]:
                         sum_1 += i
                     average_quality_1= sum_1/len(quality_conversion)
                     quality_list.append(average_quality_1)
@@ -302,7 +305,8 @@ def run():
                     #TODO: check if id numbers oare the same in identity line
                     completetrim = pairedend(read[1], start.startcut, start.endcut,
                                              quality_conversion,start.slidingwindow, start.qualitythreshold)
-                   
+                    if len(completetrim[0]) != len(initial_read)  :
+                        trimmed_reads += 1
                 elif len(read) == 4:
                     completeleft = lefttrim(read[1],quality_conversion[0],read[3], 
                                             start.startcut, start.slidingwindow, start.qualitythreshold) # third parameter will be from arg parse
@@ -311,6 +315,10 @@ def run():
                                             start.endcut, start.slidingwindow, start.qualitythreshold)
                     if len(completetrim[0]) != len(completetrim[1]):
                         sys.exit("Error - sequence length doesn't equal quality length")
+                    if len(completetrim[0][0]) != len(initial_read_f)  :
+                        trimmed_reads += 1
+                    if len(completetrim[0][1]) != len(initial_read_r)  :
+                        trimmed_reads += 1
                 else:
                     sys.exit("there is an error in file processing, try again")
                 ################################################################################################## 
@@ -320,10 +328,7 @@ def run():
                 #TODO: need to format the output into two files for two reads
                 #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
                 #To check if the read has been trimmed or removed
-                if len(completetrim[0][0]) != len(initial_read_f)  :
-                    trimmed_reads += 1
-                if len(completetrim[0][1]) != len(initial_read_r)  :
-                    trimmed_reads += 1
+
             
                 trimmedqual = quality_conversion[:len(completetrim[0])] 
                 #TODO: check if this works
