@@ -240,22 +240,55 @@ def run():
             line = [x.strip() for x in line]
             read.append(line)
             #read length is 2 for single but 4 for paired
-            if len(read) == size:
-                if size == 2:
-                    read = ["".join(x) for i in read for x in i]   
+            if len(read) == len(start.files)*2:   
+                dictionary = guess_encoding(read[0])
+                print(read)
+                #Average quality for each entry
+                (sum_1, sum_2,sum_list)= (0,0,0)
+                
+                if  len((start.files))*2 == 2:
+                    read = ["".join(x) for i in read for x in i] 
+                    #convert reads and trim
+                    quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
+                    completeleft = lefttrim(read[1],quality_conversion[0],read[3], 
+                                            start.startcut, start.slidingwindow, start.qualitythreshold) # third parameter will be from arg parse
+                
+                    completetrim = righttrim(completeleft[0], completeleft[1], completeleft[2],
+                                            start.endcut, start.slidingwindow, start.qualitythreshold)
+                    #statistics
+                    for i in quality_conversion:
+                        sum_1 += i
+                    average_quality_1= sum_1/len(quality_conversion)
+                    quality_list.append(average_quality_1)
+                    
                     number_entries += 1
                     initial_read = read[1]
                     number_A = initial_read.count('A')
                     number_C = initial_read.count('C')
                     number_T = initial_read.count('T')
                     number_G = initial_read.count('G')
-                    #Length of each entry
-                    length_entries.append(len(initial_read))
-                    print(initial_read)
-
-                if size == 4:
-                    number_entries += 2
-                    pass
+                    
+                    #TODO: check if id numbers oare the same in identity line
+                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]), 
+                                                                    "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
+                elif len(start.files)*2 == 4:
+                    
+                    #convert ascii values for each read/single read to decimal value
+                    quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
+                    completetrim = pairedend(read[1], start.startcut, start.endcut,
+                                             quality_conversion,start.slidingwindow, start.qualitythreshold)
+                    
+                    for i in quality_conversion[0]:
+                        sum_1 += i
+                    average_quality_1= sum_1/len(quality_conversion[0])
+                    quality_list.append(average_quality_1)
+                    for i in quality_conversion[1]:
+                        sum_2 += i
+                    average_quality_2= sum_2/len(quality_conversion[1])
+                    quality_list.append(average_quality_2)
+                    
+                    number_entries += 2 
+                    
                     #still need to fix ability for functions to read two reads at once
                     #Number of bases in forward entries
                     initial_read_f = read[1][0]
@@ -273,55 +306,18 @@ def run():
                     
                     #Length of each entry
                     length_entries.append(len(initial_read_f))
-                    length_entries.append(len(initial_read_r))
-                    
-                   
-                dictionary = guess_encoding(read[0])
-                #convert ascii values for each read/single read to decimal value
-                quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
-                print('quality output', quality_conversion)
-                #Average quality for each entry
-                (sum_1, sum_2,sum_list)= (0,0,0)
-                if size == 4:
-                    for i in quality_conversion[0]:
-                        sum_1 += i
-                    average_quality_1= sum_1/len(quality_conversion[0])
-                    quality_list.append(average_quality_1)
-                    for i in quality_conversion[1]:
-                        sum_2 += i
-                    average_quality_2= sum_2/len(quality_conversion[1])
-                    quality_list.append(average_quality_2)
-
-                if size == 2:
-                    for i in quality_conversion[0]:
-                        sum_1 += i
-                    average_quality_1= sum_1/len(quality_conversion)
-                    quality_list.append(average_quality_1)
-
-                ################################################################################################## 
-                #take paired reads and trim or single read
-                #print(read)
-                if len(read[1]) == 2:
-                    #TODO: check if id numbers oare the same in identity line
-                    completetrim = pairedend(read[1], start.startcut, start.endcut,
-                                             quality_conversion,start.slidingwindow, start.qualitythreshold)
-                    if len(completetrim[0]) != len(initial_read)  :
-                        trimmed_reads += 1
-                elif len(read) == 4:
-                    completeleft = lefttrim(read[1],quality_conversion[0],read[3], 
-                                            start.startcut, start.slidingwindow, start.qualitythreshold) # third parameter will be from arg parse
-                
-                    completetrim = righttrim(completeleft[0], completeleft[1], completeleft[2],
-                                            start.endcut, start.slidingwindow, start.qualitythreshold)
-                    if len(completetrim[0]) != len(completetrim[1]):
-                        sys.exit("Error - sequence length doesn't equal quality length")
-                    if len(completetrim[0][0]) != len(initial_read_f)  :
-                        trimmed_reads += 1
-                    if len(completetrim[0][1]) != len(initial_read_r)  :
-                        trimmed_reads += 1
+                    length_entries.append(len(initial_read_r))    
+                    #take paired reads and trim or single read
+                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),"".join(completetrim[0]), 
+                                                                    "".join(read[2][1]),"".join(read[3][0][:len(completetrim[0])])))
+                    outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),"".join(completetrim[1]),
+                                                                     "".join(read[2][1]),"".join(read[3][1][:len(completetrim[0])])))  
                 else:
                     sys.exit("there is an error in file processing, try again")
-                ################################################################################################## 
+                    
+                if len(completetrim[0]) != len(completetrim[1]):
+                        sys.exit("Error - sequence length doesn't equal quality length")
+                    
                 if completetrim == None:
                     print("The reads could not be processed")
 
@@ -338,19 +334,6 @@ def run():
                 elif checklen(completetrim, minlen=50) is False:
                     print("read removed too short ")
                     removed_reads += 1
-                else:
-                    ################################################################################################## 
-                    if size == 4:
-                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),"".join(completetrim[0]), 
-                                                                    "".join(read[2][1]),"".join(read[3][0][:len(completetrim[0])])))
-                        outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),"".join(completetrim[1]),
-                                                                     "".join(read[2][1]),"".join(read[3][1][:len(completetrim[0])])))         
-                    elif size == 2:
-                        print(9)
-                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]), 
-                                                                    "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
-                       
-                #write to second output file if there are two reads
                 read = []
         for i in fastq:
             i.close()
@@ -402,14 +385,14 @@ def run():
         
         
     except FileNotFoundError as e:
-        print("file not found", e) 
-        # To put the results in a log file
         now = datetime.datetime.now()
         print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
 
 
 if __name__ == "__main__":
     run()
+    if run is not None:
+        print("Successful run!")
 else:
     print("There is an error")
     sys.exit(1)
