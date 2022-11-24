@@ -122,8 +122,6 @@ def righttrim(read,quality_scores, quality_line,trailing, window_size,quality_th
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
     """
-    # Parameters definition
-    
     # Remove X nucleotides
     rtrim = read[:-trailing]
     quality_scores = quality_scores[:-trailing]
@@ -153,7 +151,7 @@ def checklen(trimmed, minlen):
         if len(seq) > minlen:
             return True
         else: 
-            return False # write index to log file
+            return False 
         
 def meanquality(qualityscore, qualitythreshold):
     """ calculates average qulaity of all the scores from a read
@@ -204,7 +202,7 @@ def run():
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
-    logfile = open("log_file.txt", "w")
+   
     try:
         #check if file is fastq and if compressed change open function
         starter = decompress(start.files)
@@ -222,9 +220,8 @@ def run():
         else:
             sys.exit("Only single file/two paired files allowed as input")
       
-        # Counter to keep track of trimmed and removed reads
+        #Counter  and lists to keep track of statistics
         trimmed_reads, removed_reads = (0,0)
-        #Counter to keep track of statistics
         number_entries, number_A, number_C, number_T ,number_G = (0,0,0,0,0)
         length_entries = list()
         conversion_list = list()
@@ -233,6 +230,17 @@ def run():
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
         outfile2 = open("outfile2.txt", "w")
+        logfile = open("log_file.txt", "w")
+        now = datetime.datetime.now()
+        print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
+        print('LEGEND ', file = logfile)
+        col_names = {'No': 'Number of entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
+        'A':'Number of A bases','T':'Number of T bases', 'C':'Number of C bases', 'G':'Number of G bases',
+        'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality'}
+        for key,value in col_names.items():
+	        print('\t',key, ':', value, file = logfile)
+        print('\nDETAILED STATISTICS RESULTS', file = logfile)
+        print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A. len', 'A. qual'), file = logfile)
         read = []
         
         #map reads together if paired - else read single read
@@ -246,6 +254,7 @@ def run():
                 #Average quality for each entry
                 (sum_1, sum_2,sum_list)= (0,0,0)
                 
+                ##SINGLE END READS
                 if  len((start.files))*2 == 2:
                     read = ["".join(x) for i in read for x in i] 
                     #convert reads and trim
@@ -256,11 +265,12 @@ def run():
                     completetrim = righttrim(completeleft[0], completeleft[1], completeleft[2],
                                             start.endcut, start.slidingwindow, start.qualitythreshold)
                     #statistics
-                    for i in quality_conversion:
+                    for i in quality_conversion[0]:
                         sum_1 += i
-                    average_quality_1= sum_1/len(quality_conversion)
+                    average_quality_1= sum_1/len(quality_conversion[0])
                     quality_list.append(average_quality_1)
                     
+
                     number_entries += 1
                     initial_read = read[1]
                     number_A = initial_read.count('A')
@@ -268,16 +278,33 @@ def run():
                     number_T = initial_read.count('T')
                     number_G = initial_read.count('G')
                     
-                    #TODO: check if id numbers oare the same in identity line
-                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]), 
-                                                                    "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
-                elif len(start.files)*2 == 4:
+                    #Length of each entry
+                    length_entries.append(len(initial_read))
                     
+                    #TODO: check if id numbers oare the same in identity line
+                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]),
+                                    "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
+
+                    #To calculate statistics results
+                    #Average length
+                    sum = 0    
+                    for i in length_entries:
+                        sum += i
+                    average_length = sum/number_entries
+                    #Average quality of each entry
+                    for i in quality_list:
+                        sum_list += i
+                    total_average = sum_list / len(quality_list)
+                    print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(number_entries, trimmed_reads,removed_reads,number_A, number_T, number_C,number_G,length_entries[-1],average_length, round(total_average,2)), file = logfile)
+        
+        
+                ##PAIRED-END READS
+                elif len(start.files)*2 == 4:
                     #convert ascii values for each read/single read to decimal value
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
                     completetrim = pairedend(read[1], start.startcut, start.endcut,
                                              quality_conversion,start.slidingwindow, start.qualitythreshold)
-                    
+                    #Calculate quality of each entry
                     for i in quality_conversion[0]:
                         sum_1 += i
                     average_quality_1= sum_1/len(quality_conversion[0])
@@ -287,7 +314,7 @@ def run():
                     average_quality_2= sum_2/len(quality_conversion[1])
                     quality_list.append(average_quality_2)
                     
-                    number_entries += 2 
+                    number_entries += 1 
                     
                     #still need to fix ability for functions to read two reads at once
                     #Number of bases in forward entries
@@ -306,7 +333,20 @@ def run():
                     
                     #Length of each entry
                     length_entries.append(len(initial_read_f))
-                    length_entries.append(len(initial_read_r))    
+                    length_entries.append(len(initial_read_r)) 
+
+                    #To calculate statistics results
+                    #Average length
+                    sum = 0    
+                    for i in length_entries:
+                        sum += i
+                    average_length = sum/number_entries
+
+                    #Average quality of each entry
+                    for i in quality_list:
+                        sum_list += i
+                    total_average = sum_list / len(quality_list)   
+
                     #take paired reads and trim or single read
                     outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),"".join(completetrim[0]), 
                                                                     "".join(read[2][1]),"".join(read[3][0][:len(completetrim[0])])))
@@ -341,49 +381,27 @@ def run():
         outfile2.close()
 
         #To calculate statistics results
-        #Average length
-        sum = 0    
-        for i in length_entries:
-            sum += i
-        average_length = sum/number_entries
-        #Average quality of each entry
-        for i in quality_list:
-            sum_list += i
-        total_average = sum_list / len(quality_list)
         original_list = quality_list[:]
         quality_list.sort()
         #Best and worst 10%
-        percentage = int(number_entries*0.1)
+        percentage = int(number_entries*1/10)
         best10 = quality_list[-percentage:]
         worst10 = quality_list[:percentage]
         
         # To print the results in the log file
-        now = datetime.datetime.now()
-        print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
-        print('\nNumber of trimmed reads:\t', trimmed_reads, file = logfile )
-        print('\nNumber of removed reads:\t', removed_reads, file = logfile)
-        print('\nSTATISTICS (file without trimming):', file = logfile )
-        print('\nNumber of entries:\t',number_entries, file = logfile )
-        print('\nNumber of each bases:\t', file = logfile )
-        print('\tNumber A:\t',number_A, file = logfile )
-        print('\tNumber C:\t',number_C, file = logfile )
-        print('\tNumber T:\t',number_T, file = logfile )
-        print('\tNumber G:\t',number_G, file = logfile )
-        print('\nLength of each entry:\t', file = logfile )
-        for i in range(1,number_entries+1):
-            print('\tEntry\t', i, ':\t', length_entries[i-1], file = logfile)
-        print('\nAverage length of entries:\t', round(average_length,2), file = logfile )
-        print('\nQuality average of entries:\t',round(total_average,2), file = logfile )
-        print('\nBest 10% quality entries:\t', file = logfile )
+        print('\nSTATISTICS SUMMARY:', file = logfile )
+        print('\tAverage length of entries:\t', round(average_length,2), file = logfile )
+        print('\tQuality average of entries:\t',round(total_average,2), file = logfile )
+        print('\tBest 10% quality entries:\t', file = logfile )
         for j in best10:
             pos = original_list.index(j)
-            print('\tEntry:',pos+1, '\tAverage quality:',round(j,2), file=logfile )
-        print('\nWorst 10% quality entries:\t', file = logfile )
+            print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile )
+        print('\tWorst 10% quality entries:\t', file = logfile )
         for j in worst10:
             pos = original_list.index(j)
-            print('\tEntry:',pos+1, '\tAverage quality:',round(j,2), file=logfile)
-        
-        
+            print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile)
+       
+    
     except FileNotFoundError as e:
         now = datetime.datetime.now()
         print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
