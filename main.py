@@ -20,7 +20,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to other file for testing
-    args = my_parser.parse_args("-f BRISCOE_0069_BD18RUACXX_L2_2_pf.fastq BRISCOE_0069_BD18RUACXX_L2_1_pf.fastq ".split())
+    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
    
     return args
     
@@ -212,11 +212,13 @@ def run():
     """
     start = parserfunc()
     phred_dict = dict_creation('coding_keys.txt')
-   
+    logfile = open("log_file.txt", "w")
+    now = datetime.datetime.now()
     try:
         #check if file is fastq and if compressed change open function
         starter = decompress(start.files)
         if starter is False:
+            print(now, '\tThe file is not in fastq format \nOnly .fq, .fastq, .fq.gz, .fastq.gz format accepted', file = logfile)
             sys.exit("The file is not in fastq format \nOnly .fq, .fastq, .fq.gz, .fastq.gz format accepted")
         open_opt = gzip.open if starter is True else open
         
@@ -228,6 +230,7 @@ def run():
             fastq = [open_opt(start.files[0], "r")]
             size, num = (2 ,0)
         else:
+            print(now, '\tOnly single file/two paired files allowed as input', file = logfile)
             sys.exit("Only single file/two paired files allowed as input")
       
         #Counter  and lists to keep track of statistics
@@ -240,23 +243,23 @@ def run():
         #create output file to write to and initialise read   
         outfile = open("outfile.txt", "w")
         outfile2 = open("outfile2.txt", "w")
-        logfile = open("log_file.txt", "w")
-        now = datetime.datetime.now()
+
+        #Write in log file
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
         print('LEGEND ', file = logfile)
         col_names = {'No': 'Number of entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
         'A':'Number of A bases','T':'Number of T bases', 'C':'Number of C bases', 'G':'Number of G bases',
-        'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality'}
+        'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality of the read'}
         for key,value in col_names.items():
 	        print('\t',key, ':', value, file = logfile)
-        print('DETAILED STATISTICAL RESULTS', file = logfile)
+        print('\nDETAILED STATISTICAL RESULTS', file = logfile)
         print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A.len', 'A.qual'), file = logfile)
         read = []
         
         #map reads together if paired - else read single read
         for line in map(list,zip(fastq[0],fastq[num])):
             if line == '':
-                print('Error in entry number', number_entries+1, ' : the line is empty!')
+                print('Error in entry number', number_entries+1, ' : the line is empty!', file = logfile)
                 break
             line = [x.strip() for x in line]
             read.append(line)
@@ -281,7 +284,6 @@ def run():
                         sum_1 += i
                     average_quality_1= sum_1/len(quality_conversion[0])
                     quality_list.append(average_quality_1)
-                    
 
                     number_entries += 1
                     initial_read = read[1]
@@ -327,12 +329,13 @@ def run():
                     for i in quality_conversion[0]:
                         sum_1 += i
                     average_quality_1= sum_1/len(quality_conversion[0])
-                    quality_list.append(average_quality_1)
                     
                     for i in quality_conversion[1]:
                         sum_2 += i
                     average_quality_2= sum_2/len(quality_conversion[1])
-                    quality_list.append(average_quality_2)
+                    average_quality_read = (average_quality_1+average_quality_2)/2
+
+                    quality_list.append(average_quality_read)
                     
                     number_entries += 1 
                     
@@ -352,9 +355,9 @@ def run():
                     number_G += initial_read_r.count('G')
                     
                     #Length of each entry
-                    length_entries.append(len(initial_read_f))
-                    length_entries.append(len(initial_read_r)) 
-
+                    length_read = (len(initial_read_f)+len(initial_read_r))/2
+                    length_entries.append(length_read)
+                   
                     #To calculate statistics results
                     #Average length
                     sum = 0    
@@ -366,7 +369,11 @@ def run():
                     for i in quality_list:
                         sum_list += i
                     total_average = sum_list / len(quality_list)
-                    
+                    print('len quality', len(quality_list)   )
+
+                    print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(number_entries, trimmed_reads,removed_reads,number_A, number_T, number_C,number_G,length_entries[-1],average_length, round(total_average,2)), file = logfile)
+        
+
                     if completetrim == None:
                         break
                     #To check if the read has been trimmed or removed
@@ -393,27 +400,33 @@ def run():
         outfile.close()
         outfile2.close()
 
-        #To calculate statistics results
+        #To calculate statistical results
         original_list = quality_list[:]
         quality_list.sort()
         #Best and worst 10%
         percentage = int(number_entries*1/10)
-        best10 = quality_list[-percentage:]
-        worst10 = quality_list[:percentage]
+        best10 = quality_list[-round(percentage):]
+        worst10 = quality_list[:round(percentage)]
         
         # To print the results in the log file
         print('\nSTATISTICS SUMMARY:', file = logfile )
         print('\tAverage length of entries:\t', round(average_length,2), file = logfile )
         print('\tQuality average of entries:\t',round(total_average,2), file = logfile )
         print('\tBest 10% quality entries:\t', file = logfile )
-        for j in best10:
-            pos = original_list.index(j)
-            print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile )
+        if number_entries >= 10:
+            for j in best10:
+                pos = original_list.index(j)
+                print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile )
+        else:
+            print('\t\t','Error: To little number of entries (Atl least, 10 entries are needed)', file=logfile )
         print('\tWorst 10% quality entries:\t', file = logfile )
-        for j in worst10:
-            pos = original_list.index(j)
-            print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile)
-       
+        if number_entries >= 10:
+            for j in worst10:
+                pos = original_list.index(j)
+                print('\t\t','Entry:',pos+1, '\tAverage quality:',round(j,2), file=logfile)
+        else:
+            print('\t\t','Error: To little number of entries (Atl least, 10 entries are needed)', file=logfile )
+        
     
     except FileNotFoundError as e:
         now = datetime.datetime.now()
