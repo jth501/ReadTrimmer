@@ -242,8 +242,6 @@ def run():
             #read length is 2 for single but 4 for paired
             if len(read) == len(start.files)*2:   
                 dictionary = guess_encoding(read[0])
-                #convert ascii values for each read/single read to decimal value
-                quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
                 print(read)
                 #Average quality for each entry
                 (sum_1, sum_2,sum_list)= (0,0,0)
@@ -275,6 +273,8 @@ def run():
                                                                     "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
                 elif len(start.files)*2 == 4:
                     
+                    #convert ascii values for each read/single read to decimal value
+                    quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
                     completetrim = pairedend(read[1], start.startcut, start.endcut,
                                              quality_conversion,start.slidingwindow, start.qualitythreshold)
                     
@@ -315,7 +315,6 @@ def run():
                 else:
                     sys.exit("there is an error in file processing, try again")
                     
-                print(len(completetrim[0]) ,len(completetrim[1]))
                 if len(completetrim[0]) != len(completetrim[1]):
                         sys.exit("Error - sequence length doesn't equal quality length")
                     
