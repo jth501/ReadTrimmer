@@ -20,7 +20,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to other file for testing
-    args = my_parser.parse_args("-f testfile.txt testfile2.txt".split())
+    args = my_parser.parse_args("-f testfile.txt ".split())
    
     return args
     
@@ -326,10 +326,7 @@ def run():
                 #TODO: need to format the output into two files for two reads
                 #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
                 #To check if the read has been trimmed or removed
-                if len(completetrim[0][0]) != len(initial_read_f)  :
-                    trimmed_reads += 1
-                if len(completetrim[0][1]) != len(initial_read_r)  :
-                    trimmed_reads += 1
+
             
                 trimmedqual = quality_conversion[:len(completetrim[0])] 
                 #TODO: check if this works
