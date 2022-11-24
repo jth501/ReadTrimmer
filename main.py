@@ -20,7 +20,7 @@ def parserfunc():
 
     #execute the parser method
     #parameters here are currenty tests but can be rewritten to other file for testing
-    args = my_parser.parse_args("-f testfile.txt ".split())
+    args = my_parser.parse_args("-f BRISCOE_0069_BD18RUACXX_L2_2_pf.fastq BRISCOE_0069_BD18RUACXX_L2_1_pf.fastq ".split())
    
     return args
     
@@ -29,16 +29,15 @@ def decompress(textwrapper):
         if true files are checked for compressiion status and decompressed if necessary
         returns 
     """
-    fqcheck = (".fq", ".fastq", ".fq.gz", ".fastq.gz",".txt") #remove testcase txt
+    fqcheck = (".fq", ".fastq", ".fq.gz", ".fastq.gz")
     for i in textwrapper:
         if i.endswith(fqcheck):
-            print("file is in fastq format")
+            pass
         else:
              return False
         checkcompress = re.search(r"\w+.g[un]z[ip]",i)
-        # checkcompress = re.search(r"\w+.txt",i) ##test case
         if checkcompress is None:
-            print("not a zipped file")
+            pass
         else:
             return True
 
@@ -97,7 +96,7 @@ def lefttrim(read, quality_scores, quality_line, leading, window_size, quality_t
     """ remove X nucleotides from 5 prime end
         return trimmed 5 prime
     """
-    # Remove X nucleotides
+    # Remove X nucleotides of adapter
     ltrim = read[leading:]
     quality_scores = quality_scores[leading:]
     quality_line = quality_line[leading:]
@@ -122,7 +121,7 @@ def righttrim(read,quality_scores, quality_line,trailing, window_size,quality_th
     """ remove X nucleotides from 3 prime end
         return trimmed 3 prime
     """
-    # Remove X nucleotides
+    # Remove X nucleotides of adapter
     rtrim = read[:-trailing]
     quality_scores = quality_scores[:-trailing]
     quality_line = quality_line[:-trailing]
@@ -157,17 +156,22 @@ def meanquality(qualityscore, qualitythreshold):
     """ calculates average qulaity of all the scores from a read
         returns read if average is greater than quality threshold level
     """
-    end = False
-    for score in qualityscore:
+    try:
+        end = False
         sumquality = 0
-        for i in score:
-            sumquality += int(i)
-        meanquality = int(sumquality/(len(qualityscore)))
-        if meanquality > qualitythreshold:
-            end = True
+        for score in qualityscore:
+            for i in score:
+                sumquality += int(i)
+            meanquality = int(sumquality/(len(qualityscore[0])))
+            
+            if meanquality > qualitythreshold:
+                end = True
+            sumquality= 0  
+    except ZeroDivisionError:
+        return False
     return end
     
-def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
+def pairedend(read, quality_line, leading, trailing, qualityscores, windowsize, qualthresh):
     """ inputs a list of two reads that are adpater removed based on the leading and trailing 
         values. Then trimmed based on the quality line and checks the length are the same before
         returning a listed of trimmed files
@@ -175,7 +179,6 @@ def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
     #remove adapters
     forward = read[0][leading:(-leading-1)]
     reverse = read[1][trailing:(-trailing-1)]
-    #cut from left and right at the same time until trim stops - should be equal
     
     #trim forward read from the 5 prime side
     trimmed = []
@@ -185,8 +188,9 @@ def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
             break
         else:
             trimmedf = forward[value:]
-    trimmed.append(trimmedf)
-    
+    trimmed.append([trimmedf])
+    trimmed.append([quality_line[0][:len(trimmedf)]])
+    trimmed.append([qualityscores[0][:len(trimmedf)]])
     #trim reverse read from the 5 prime side
     for value in range(0,len(qualityscores[1])):
         if sum(qualityscores[1][-(value+3):])/3 > qualthresh:
@@ -194,8 +198,10 @@ def pairedend(read, leading, trailing, qualityscores, windowsize, qualthresh):
             break
         else:
             trimmedr = reverse[:-(value)]
-    trimmed.append(trimmedr)
-
+    trimmed[0].append(trimmedr)
+    trimmed[1].append(quality_line[1][:-(len(read[1])-len(trimmedr))])
+    trimmed[2].append(qualityscores[1][:-(len(read[1])-len(trimmedr))])
+    
     #check if reads are the same length to discard later
     if len(trimmedf) != len(trimmedr):
         trimmed.append(False)
@@ -253,12 +259,10 @@ def run():
                 print('Error in entry number', number_entries+1, ' : the line is empty!')
                 break
             line = [x.strip() for x in line]
-            
             read.append(line)
             #read length is 2 for single but 4 for paired
             if len(read) == len(start.files)*2:   
                 dictionary = guess_encoding(read[0])
-                print(read)
                 #Average quality for each entry
                 (sum_1, sum_2,sum_list)= (0,0,0)
                 
@@ -289,8 +293,15 @@ def run():
                     #Length of each entry
                     length_entries.append(len(initial_read))
                     
-                    #TODO: check if id numbers oare the same in identity line
-                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]),
+                    if completetrim == None:
+                        break
+                    #To check if the read has been trimmed or removed
+                    if meanquality(completetrim[2],qualitythreshold=30) is False:
+                        removed_reads += 1
+                    elif checklen(completetrim[0], minlen=50) is False:
+                        removed_reads += 1
+                    else:
+                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]),
                                     "".join(read[2]),"".join(read[3][:len(completetrim[0])])))
 
                     #To calculate statistics results
@@ -310,7 +321,7 @@ def run():
                 elif len(start.files)*2 == 4:
                     #convert ascii values for each read/single read to decimal value
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
-                    completetrim = pairedend(read[1], start.startcut, start.endcut,
+                    completetrim = pairedend(read[1], read[3],start.startcut, start.endcut,
                                              quality_conversion,start.slidingwindow, start.qualitythreshold)
                     #Calculate quality of each entry
                     for i in quality_conversion[0]:
@@ -354,32 +365,28 @@ def run():
                     #Average quality of each entry
                     for i in quality_list:
                         sum_list += i
-                    total_average = sum_list / len(quality_list)   
-
-                    #take paired reads and trim or single read
-                    outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),"".join(completetrim[0]), 
-                                                                    "".join(read[2][1]),"".join(read[3][0][:len(completetrim[0])])))
-                    outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),"".join(completetrim[1]),
-                                                                     "".join(read[2][1]),"".join(read[3][1][:len(completetrim[0])])))  
+                    total_average = sum_list / len(quality_list)
+                    
+                    if completetrim == None:
+                        break
+                    #To check if the read has been trimmed or removed
+                    if meanquality(completetrim[2],qualitythreshold=30) is False:
+                        removed_reads += 1
+                    elif checklen(completetrim[0], minlen=50) is False:
+                        removed_reads += 1
+                    #write paired read to file if the identifiers match
+                    elif read[0][0][:-6] != read[0][1][:-6]:
+                        break
+                    else:
+                        outfile.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][0]),completetrim[0][0], 
+                                                                        "".join(read[2][1]),"".join(completetrim[1][0])))
+                        outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),completetrim[0][1],
+                                                                        "".join(read[2][1]),"".join(completetrim[1][1])))  
                 else:
                     sys.exit("there is an error in file processing, try again")
-                    
-                if len(completetrim[0]) != len(completetrim[1]):
-                        sys.exit("Error - sequence length doesn't equal quality length")
-
-                #TODO: need to format the output into two files for two reads
-                #TODO: remove adapter from right and left of read - the user input replaces adapter removal as the reads have adapters
-                #To check if the read has been trimmed or removed
-
-            
-                trimmedqual = quality_conversion[:len(completetrim[0])] 
-                #TODO: check if this works
-                if meanquality(trimmedqual,qualitythreshold=30) is False:
-                    print("read removed mean")
-                    removed_reads += 1
-                elif checklen(completetrim, minlen=50) is False:
-                    print("read removed too short ")
-                    removed_reads += 1
+                 
+                if len(completetrim[0][0]) != len(completetrim[0][1]):
+                        print(("Error - sequence length doesn't equal quality length at entry {0}".format(number_entries)))
                 read = []
         for i in fastq:
             i.close()
@@ -411,12 +418,12 @@ def run():
     except FileNotFoundError as e:
         now = datetime.datetime.now()
         print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
-
+    logfile.close()
 
 if __name__ == "__main__":
     run()
     if run is not None:
-        print("Successful run!")
+        print("Successful run! Check log file for errors in specific entries")
 else:
     print("There is an error")
     sys.exit(1)
