@@ -1,0 +1,28 @@
+2022-11-24 14:35:43.481927 	 All reads from this FILE were CORRECTLY TRIMMED!
+LEGEND 
+	 No : Number of entry
+	 Tm : No trimmed reads
+	 Rm : No removed reads
+	 A : Number of A bases
+	 T : Number of T bases
+	 C : Number of C bases
+	 G : Number of G bases
+	 Len : Length
+	 A. Len : Average length
+	 A.qual : Average quality
+DETAILED STATISTICAL RESULTS
+No	Tm	Rm	A	T	C	G	Len	A.len	A.qual
+1	0	0	61	2	6	31	101	101.0	37.82
+2	0	0	43	17	23	17	101	101.0	35.49
+3	0	0	32	26	21	22	101	101.0	36.28
+4	0	0	37	26	21	17	101	101.0	36.63
+
+STATISTICS SUMMARY:
+	Average length of entries:	 101.0
+	Quality average of entries:	 36.63
+	Best 10% quality entries:	
+		 Entry: 2 	Average quality: 33.15
+		 Entry: 4 	Average quality: 37.67
+		 Entry: 1 	Average quality: 37.82
+		 Entry: 3 	Average quality: 37.88
+	Worst 10% quality entries:	
