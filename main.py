@@ -22,7 +22,7 @@ def parserfunc():
     my_parser.add_argument("-qualitythreshold", default="20",type=int ,help ="min quality level of read")
     my_parser.add_argument("-compression","-cmp", default = False, type=bool ,help ="choose compression of output files")
     my_parser.add_argument("-phred_scale", choices=[33,64], default = False, type=int ,help ="select phred scale to trim with")
-    
+
     if len(sys.argv) == 1:
         my_parser.print_help()
         sys.exit(1)
@@ -55,7 +55,6 @@ def decompress(now, textwrapper,logfile):
 
 def dict_creation(dict_file):
     """To create a dictionary from the infile data"""
-    # Open the dictionary text file
     try:
         infile = open(dict_file, 'r')
     except IOError as e:
@@ -64,8 +63,7 @@ def dict_creation(dict_file):
 
     # Create a dict by reading the imported text file
     # # Key : scores
-    # # Values : coding keys (list of two elements)
-
+    # # Values : coding keys[phred+33, phred+64] (list of two elements)
     phred_dict = dict()
     headlines = None
     for line in infile:
@@ -79,8 +77,10 @@ def dict_creation(dict_file):
 def guess_encoding(id_line):
     """Function to detect which phred has to be used (+33 or +64)"""
     if id_line[0:3] == '@HWI':
-        dictionary = 1
+        #Phred +64
+        dictionary = 1    
     else:
+        #Phred +33
         dictionary = 0
     return dictionary
     
@@ -88,7 +88,7 @@ def guess_encoding(id_line):
 def translation_scores(quality_line, phred_dict, encoding_dict):
     """Function to translates Ascii characters into scores
         returns list of scores
-    """
+        """
     #make score a list if single input
     if len(quality_line) != 2:
         quality_line = [quality_line]
@@ -322,7 +322,7 @@ def run():
 
                     #Check the percentage of N bases   
                     if number_N >= 0.2*len(read[1]):
-                        print('Too many N bases in the read, file = logfile')
+                        print('Percentage of N bases in the read > threshold 20%', file = logfile)
                         N_max += 1
                         sys.exit("there are too many N bases")
                     if number_N < 0.2*len(read[1]) and number_N >= 0.1*len(read[1]):
@@ -394,9 +394,9 @@ def run():
                     number_N = initial_read_f.count('N')
 
                     #Check the percentage of N bases   
-                    if number_N >= 0.2*len(read[1][0]):
+                    if number_N >= 0.2*len(read[1][0]): 
                         N_max += 1
-                        print('Too many N bases in the read, file = logfile')
+                        print('Percentage of N bases in the read > threshold 20%', file = logfile)
                         sys.exit("there are too many N bases")
 
                     if number_N < 0.2*len(read[1][0]) and number_N >= 0.1*len(read[1][0]):
@@ -418,7 +418,7 @@ def run():
                     #Check the percentage of N bases      
                     if number_N >= 0.2*len(read[1][1]):
                         N_max += 1
-                        print('Too many N bases in the read, file = logfile')
+                        print('Percentage of N bases in the read > threshold 20%', file = logfile)
                         sys.exit("there are too many N bases")
                     if number_N < 0.2*len(read[1][1]) and number_N >= 0.1*len(read[1][1]):
                         N_20 += 1
