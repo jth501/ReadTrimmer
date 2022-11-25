@@ -2,12 +2,15 @@
 import argparse
 import sys
 import re
-import gzip #detect if files are gunzip - uncomplete
+import gzip 
 import datetime
 import string
 
 #create parser
 def parserfunc():
+    """ parser function to read input from user
+        returns the Namespace arguments
+    """
     my_parser = argparse.ArgumentParser(prog="ReadTrimmer", description="This is a read trimmer")
 
     #add the arguments
@@ -29,7 +32,7 @@ def decompress(textwrapper):
         if true files are checked for compressiion status and decompressed if necessary
         returns 
     """
-    fqcheck = (".fq", ".fastq", ".fq.gz", ".fastq.gz")
+    fqcheck = (".fq", ".fastq", ".fq.gz", ".fastq.gz",".txt")
     for i in textwrapper:
         if i.endswith(fqcheck):
             pass
@@ -191,6 +194,7 @@ def pairedend(read, quality_line, leading, trailing, qualityscores, windowsize, 
     trimmed.append([trimmedf])
     trimmed.append([quality_line[0][:len(trimmedf)]])
     trimmed.append([qualityscores[0][:len(trimmedf)]])
+    
     #trim reverse read from the 5 prime side
     for value in range(0,len(qualityscores[1])):
         if sum(qualityscores[1][-(value+3):])/3 > qualthresh:
@@ -373,7 +377,6 @@ def run():
 
                     print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format(number_entries, trimmed_reads,removed_reads,number_A, number_T, number_C,number_G,length_entries[-1],average_length, round(total_average,2)), file = logfile)
         
-
                     if completetrim == None:
                         break
                     #To check if the read has been trimmed or removed
@@ -390,7 +393,7 @@ def run():
                         outfile2.write("{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),completetrim[0][1],
                                                                         "".join(read[2][1]),"".join(completetrim[1][1])))  
                 else:
-                    sys.exit("there is an error in file processing, try again")
+                    sys.exit("There is an error in file processing, try again")
                  
                 if len(completetrim[0][0]) != len(completetrim[0][1]):
                         print(("Error - sequence length doesn't equal quality length at entry {0}".format(number_entries)))
