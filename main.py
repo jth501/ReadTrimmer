@@ -262,7 +262,7 @@ def run():
         #Write in log file
         print((str(now)), '\t','All reads from this FILE were CORRECTLY TRIMMED!', file = logfile)
         print('LEGEND ', file = logfile)
-           col_names = {'No': 'Number of entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
+        col_names = {'No': 'Number of entry','Tm':'No trimmed reads', 'Rm':'No removed reads', 
         'A':'Number of A bases','T':'Number of T bases', 'C':'Number of C bases', 'G':'Number of G bases',
         'Len': 'Length', 'A. Len': 'Average length', 'A.qual':'Average quality of the read'}
         for key,value in col_names.items():
