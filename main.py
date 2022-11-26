@@ -10,7 +10,7 @@ def parserfunc():
     """ parser function to read input from user
         returns the Namespace arguments
     """
-    my_parser = argparse.ArgumentParser(prog="ReadTrimmer", description="This is a read trimmer")
+    my_parser = argparse.ArgumentParser(prog="ReadTrimmer", description="This program is designed to remove adpaters from raw reads and trim them according to quality")
     
     #add the arguments
     my_parser.add_argument("-files","-f", nargs="+", type=str, help="the file needed", required=True)
@@ -26,7 +26,7 @@ def parserfunc():
         my_parser.print_help()
         sys.exit(1)
     #execute the parser method
-    args = my_parser.parse_args()
+    args = my_parser.parse_args()                                                 
     
     return args
     
@@ -191,7 +191,7 @@ def pairedend(read, quality_line, leading, trailing, qualityscores,qualthresh, s
     #trim forward read from the 5 prime side
     trimmed = []
     for value in range(0,len(qualityscores[0])):
-        if sum(qualityscores[0][value:value+(slidingwindow)/slidingwindow > qualthresh:
+        if sum(qualityscores[0][value:(value+(slidingwindow))])/slidingwindow > qualthresh:
             trimmedf = forward
             break
         else:
@@ -267,6 +267,15 @@ def run():
         print('\nDETAILED STATISTICAL RESULTS', file = logfile)
         print('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}'.format('No', 'Tm','Rm','A', 'T', 'C','G','Len','A.len', 'A.qual'), file = logfile)
        
+        if start.compression == True:
+            outfile = gzip.open("{0}_trimmed.fastq.gz".format(file_names[0]), "wb")
+            if len(fastq) == 2:
+                outfile2 = gzip.open("{0}_trimmed.fastq".format(file_names[0]), "wb")  
+        else:
+            outfile = open("{0}_1_trimmed.fastq".format(file_names[0]), "w")
+            if len(fastq) == 2:
+                outfile2 = open("{0}_2_trimmed.fastq".format(file_names[1]), "w")
+                    
         read = []
         encoding = None
         #map reads together if paired - else read single read mapped to itself
@@ -296,7 +305,6 @@ def run():
                 if  len((start.files))*2 == 2:
                     read = ["".join(x) for i in read for x in i] 
                     #convert reads and trim
-                    
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
                     completeleft = lefttrim(read[1],quality_conversion[0],read[3], 
                                             start.startcut, start.slidingwindow, start.qualitythreshold) # third parameter will be from arg parse
@@ -341,11 +349,10 @@ def run():
                     else:
                         content ="{0}\n{1}\n{2}\n{3}\n".format("".join(read[0]),"".join(completetrim[0]),
                                 "".join(read[2]),"".join(read[3][:len(completetrim[0])]))
+                        
                         if start.compression == True:
-                            outfile = gzip.open("{0}_trimmed.fastq.gz".format(file_names[0]), "wb")
                             outfile.write(b"content")
                         else:
-                            outfile = open("{0}_trimmed.fastq".format(file_names[0]), "w")
                             outfile.write(content)
                     #To calculate statistics results
                     #Average length
@@ -395,7 +402,6 @@ def run():
                         N_max += 1
                         print('Percentage of N bases in the read > threshold 20%', file = logfile)
                         print("there are too many N bases")
-breakk
 
                     if number_N < 0.2*len(read[1][0]) and number_N >= 0.1*len(read[1][0]):
                         N_20 += 1
@@ -461,25 +467,19 @@ breakk
                         content2 ="{0}\n{1}\n{2}\n{3}\n".format("".join(read[0][1]),completetrim[0][1],
                                                                 "".join(read[2][1]),"".join(completetrim[1][1]))
                         if start.compression == True:
-                            outfile = gzip.open("{0}_trimmed.fastq.gz".format(file_names[0]), "wb")
                             outfile.write(b"content")
-                            outfile2 = open("{0}_trimmed.fastq".format(file_names[0]), "wb")
-                            outfile2.write(content)
+                            outfile2.write(b"content2")
                         else:
-                            outfile = open("{0}_trimmed.fastq".format(file_names[0]), "w")
                             outfile.write(content)
-                            outfile2 = open("{0}_trimmed.fastq".format(file_names[0]), "w")
-                            outfile2.write(content)
+                            outfile2.write(content2)
                 else:
-                    sys.exit("There is an error in file processing, try again")
+                        sys.exit("There is an error in file processing, try again")
                  
                 if len(completetrim[0][0]) != len(completetrim[0][1]):
                         print(("Error - sequence length doesn't equal quality length at entry {0}".format(number_entries)))
                 read = []
         
-            
-        for i in fastq:
-            i.close()
+         
         outfile.close()
         try:
              outfile2.close()
