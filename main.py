@@ -1,10 +1,9 @@
-#!user/bin/env python3
+#!usr/bin/env python3
 import argparse
 import sys
 import re
 import gzip 
 import datetime
-import string
 
 #create parser
 def parserfunc():
@@ -16,8 +15,8 @@ def parserfunc():
     #add the arguments
     my_parser.add_argument("-files","-f", nargs="+", type=str, help="the file needed", required=True)
     my_parser.add_argument("-slidingwindow", nargs="?", default="4", type=int, help="size of the sliding window")
-    my_parser.add_argument("-startcut",default="7", type=int, help ="number of leading nucleotides to remove/adpater size")
-    my_parser.add_argument("-endcut", default="7", type=int, help="number of trailing nucleotides to remove/ adapter size")
+    my_parser.add_argument("-startcut",default="8", type=int, help ="number of leading nucleotides to remove/adpater size")
+    my_parser.add_argument("-endcut", default="8", type=int, help="number of trailing nucleotides to remove/ adapter size")
     my_parser.add_argument("-minlength", default="70",type=int ,help ="minimum length of the read required")
     my_parser.add_argument("-qualitythreshold", default="20",type=int ,help ="min quality level of read")
     my_parser.add_argument("-compression","-cmp", default = False, type=bool ,help ="choose compression of output files")
@@ -27,10 +26,8 @@ def parserfunc():
         my_parser.print_help()
         sys.exit(1)
     #execute the parser method
-    #parameters here are currenty tests but can be rewritten to other file for testing
     args = my_parser.parse_args()
     
-   
     return args
     
 def decompress(now, textwrapper,logfile):
@@ -182,7 +179,7 @@ def meanquality(qualityscore, qualitythreshold):
         return False
     return end
     
-def pairedend(read, quality_line, leading, trailing, qualityscores, windowsize, qualthresh):
+def pairedend(read, quality_line, leading, trailing, qualityscores,qualthresh, slidingwindow):
     """ inputs a list of two reads that are adpater removed based on the leading and trailing 
         values. Then trimmed based on the quality line and checks the length are the same before
         returning a listed of trimmed files
@@ -194,7 +191,7 @@ def pairedend(read, quality_line, leading, trailing, qualityscores, windowsize, 
     #trim forward read from the 5 prime side
     trimmed = []
     for value in range(0,len(qualityscores[0])):
-        if sum(qualityscores[0][value:value+3])/3 > qualthresh:
+        if sum(qualityscores[0][value:value+(slidingwindow)/slidingwindow > qualthresh:
             trimmedf = forward
             break
         else:
@@ -205,7 +202,7 @@ def pairedend(read, quality_line, leading, trailing, qualityscores, windowsize, 
     
     #trim reverse read from the 5 prime side
     for value in range(0,len(qualityscores[1])):
-        if sum(qualityscores[1][-(value+3):])/3 > qualthresh:
+        if sum(qualityscores[1][-(value+slidingwindow):-(value+1)])/slidingwindow > qualthresh:
             trimmedr = reverse
             break
         else:
@@ -324,7 +321,7 @@ def run():
                     if number_N >= 0.2*len(read[1]):
                         print('Percentage of N bases in the read > threshold 20%', file = logfile)
                         N_max += 1
-                        sys.exit("there are too many N bases")
+                        print("there are too many N bases")
                     if number_N < 0.2*len(read[1]) and number_N >= 0.1*len(read[1]):
                         N_20 += 1
                     if number_N < 0.1*len(read[1]) and number_N <= 0.05*len(read[1]):
@@ -369,7 +366,7 @@ def run():
                     #convert ascii values for each read/single read to decimal value
                     quality_conversion = translation_scores(read[3], phred_dict, dictionary) #returns list of decimal score
                     completetrim = pairedend(read[1], read[3],start.startcut, start.endcut,
-                                             quality_conversion,start.slidingwindow, start.qualitythreshold)
+                                             quality_conversion, start.qualitythreshold,start.slidingwindow)
                     #Calculate quality of each entry
                     for i in quality_conversion[0]:
                         sum_1 += i
@@ -397,7 +394,8 @@ def run():
                     if number_N >= 0.2*len(read[1][0]): 
                         N_max += 1
                         print('Percentage of N bases in the read > threshold 20%', file = logfile)
-                        sys.exit("there are too many N bases")
+                        print("there are too many N bases")
+breakk
 
                     if number_N < 0.2*len(read[1][0]) and number_N >= 0.1*len(read[1][0]):
                         N_20 += 1
@@ -419,7 +417,7 @@ def run():
                     if number_N >= 0.2*len(read[1][1]):
                         N_max += 1
                         print('Percentage of N bases in the read > threshold 20%', file = logfile)
-                        sys.exit("there are too many N bases")
+                        print("there are too many N bases")
                     if number_N < 0.2*len(read[1][1]) and number_N >= 0.1*len(read[1][1]):
                         N_20 += 1
                     if number_N < 0.1*len(read[1][1]) and number_N >= 0.05*len(read[1][1]):
@@ -465,7 +463,7 @@ def run():
                         if start.compression == True:
                             outfile = gzip.open("{0}_trimmed.fastq.gz".format(file_names[0]), "wb")
                             outfile.write(b"content")
-                            outfile2 = open("{0}_trimmed.fastq".format(file_names[0]), "w")
+                            outfile2 = open("{0}_trimmed.fastq".format(file_names[0]), "wb")
                             outfile2.write(content)
                         else:
                             outfile = open("{0}_trimmed.fastq".format(file_names[0]), "w")
@@ -526,8 +524,9 @@ def run():
         print((str(now)), '\t','ERROR: File NOT found!!', file = logfile)
         print("Run unsuccessful!",e)
         sys.exit()
-        logfile.close()
+        
     else:
+        logfile.close()
         print("Successful run! Check log file for detailed statistics")
 
 if __name__ == "__main__":
